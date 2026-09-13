@@ -1,0 +1,16 @@
+{
+  "title": "PACT: Reference Implementation and Evaluation Harness for an AI Accountability Protocol",
+  "upload_type": "software",
+  "description": "Reference implementation and evaluation harness for PACT, a protocol that makes deployed AI conduct non-repudiable and adjudicable among mutually distrusting parties: hash-chained evidence logs with witness-cosigned Merkle checkpoints, a diversity-constrained commit-reveal jury protocol, a precedent graph, and the experiment harness behind the paper's results. Includes the 70-item repository-secret-handling corpus (labels v2, adjudicated, with the authored labels runnable via --labels v1), the hashed juror prompts (jp:v1, jp:v2), 19-juror/9-vendor verdict sets under two prompt framings, and the label audit. Headline findings: juror error correlation is judgment rather than lineage (cross-vendor pairs as correlated as within-vendor, difference CI containing zero in all six cuts), and aggregation buys containment (0.905 vs 0.286, disjoint intervals) but never accuracy (every voting rule scores below the best single juror once labels are corrected).",
+  "creators": [
+    {
+      "name": "Shinde, Saish Sanjay",
+      "affiliation": "San José State University"
+    }
+  ],
+  "license": "Apache-2.0",
+  "keywords": ["AI accountability", "LLM-as-judge", "transparency logs", "adjudication protocols", "AI auditing", "evaluator ensembles", "correlated errors"],
+  "related_identifiers": [
+    {"relation": "isSupplementTo", "identifier": "https://github.com/saish-shinde-007/pact-paper", "scheme": "url"}
+  ]
+}

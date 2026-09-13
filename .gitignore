@@ -17,3 +17,4 @@ figs/loom.svg.png
 *.bbl
 *.blg
 *.synctex.gz
+dist/
