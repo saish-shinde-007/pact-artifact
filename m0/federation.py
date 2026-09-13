@@ -1,19 +1,5 @@
-"""PACT M3 — the federation tiers.
-
-agent log -> operator root -> shard root -> witness-cosigned planetary root.
-
-Two claims live here and both are testable rather than asserted:
-
-1. Aggregation batches BANDWIDTH, never TRUST. Every individual action stays
-   provable by a composed O(log n) inclusion path up all four tiers. Each hop's
-   root must reappear, bound to its owner's identity, as the next hop's leaf —
-   otherwise proofs could be spliced between tiers.
-2. Equivocation dies at the root. A shard showing different histories to
-   different audiences is caught the moment any two honest witnesses compare
-   cosigned checkpoints, and the two signatures are the proof.
-
-The planetary root is deliberately NOT a blockchain: it is a thin transparency
-log of shard roots with witness cosignatures (paper §VI).
+"""Federation tiers as in-process objects: agent, operator, shard and root checkpoints
+compose into one inclusion proof; per-agent logs commute, so evidence needs no total order.
 """
 import json
 
@@ -115,11 +101,7 @@ class Federation:
 
     def seal(self, equivocate: dict | None = None) -> dict:
         """One planetary epoch: roll operators into shards, shards into the root,
-        collect witness cosignatures.
-
-        equivocate={'shard': s, 'to': [witness names], 'root': bytes} presents a
-        different shard root to those witnesses — the attack of paper §VI.
-        """
+        collect witness cosignatures."""
         self.epoch += 1
         for operator, tier in self.operators.items():
             self.shards[self.shard_of[operator]].set(operator, tier.root())

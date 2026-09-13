@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
-"""PACT M2 — E7: does the precedent graph actually retire juries?
-
-Replays a held-out stream through the full funnel (trained screener -> precedent
-match -> k=11 jury on miss -> human on escalation or conflict) and measures the
-jury-load reduction the paper's speed claim depends on, plus the errors that
-precedent matching introduces when the similarity threshold is too loose.
-
-Screener is trained on DISJOINT templates from the ones replayed here.
-Run: ./.venv/bin/python3 e7.py
+"""E7: precedent-graph load reduction, screener recall across splits, and the
+threshold safety band.
 """
 import neutral_corpus as corpus
 from jury import adjudicate

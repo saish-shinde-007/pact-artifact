@@ -1,10 +1,5 @@
-"""PACT M0 — evidence-log core.
-
-Hash-chained per-agent entries, Merkle checkpoints, witness cosigning,
-inclusion proofs, RLA sampling, manual challenges, erasure.
-
-M0 trust model: single node, dev keys in SQLite. NOT production —
-keys live next to the data they sign; real deployments use enclave keys (paper §IV-A).
+"""Core evidence plane: per-agent hash-chained logs with Ed25519 signatures, Merkle
+checkpoints cosigned by witnesses, inclusion/consistency proofs, and consequence binding.
 """
 import hashlib
 import json
@@ -57,9 +52,7 @@ def merkle_root(leaves: list[bytes]) -> bytes:
 def merkle_proof(leaves: list[bytes], index: int) -> list[str]:
     """Audit path for leaves[index]: sibling hashes only, bottom-up.
 
-    The side of each sibling is NOT stored. It is re-derived at verification
-    time from (index, tree size), so a proof cannot be replayed at a position
-    other than the one it was issued for."""
+    The side of each sibling is NOT stored. It is re-derived at verification."""
     path: list[str] = []
     level = [leaf_hash(x) for x in leaves]
     i = index
@@ -77,9 +70,7 @@ def merkle_proof(leaves: list[bytes], index: int) -> list[str]:
 def verify_inclusion(leaf: bytes, index: int, path: list[str], root: bytes, n: int) -> bool:
     """Verify leaf sits at `index` of a tree of `n` leaves with the given root.
 
-    `index` and `n` drive the walk: which side each sibling goes on, whether a
-    level has a sibling at all, and how long the path must be. A proof issued
-    for one position therefore fails at every other position."""
+    `index` and `n` drive the walk: which side each sibling goes on, whether a."""
     if n <= 0 or not 0 <= index < n:
         return False
     h = leaf_hash(leaf)
@@ -129,13 +120,9 @@ CREATE TABLE IF NOT EXISTS runtimes(agent TEXT, measurement TEXT,
 class Store:
     def __init__(self, path: str, naive: bool = False,
                  wal: bool | None = None, key_cache: bool | None = None):
-        # check_same_thread=False + _lock: the serving shim is threaded, and
-        # append() is a read-modify-write on seq, so it must be serialized or
-        # two concurrent appends collide on the primary key.
-        #
-        # naive=True disables the two append-path optimizations (WAL journaling
-        # and the signing-key object cache) so the paper's "541 us naive"
-        # baseline is reproducible by a shipped flag instead of by hand-editing.
+        # check_same_thread=False + _lock: append() is read-modify-write on seq
+        # under a threaded shim, so it must serialize. naive=True disables WAL +
+        # key-cache so the paper's naive baseline reproduces by flag, not by edit.
         self.db = sqlite3.connect(path, check_same_thread=False)
         self._lock = threading.RLock()
         # each optimization is independently toggleable so the benchmark can
@@ -409,9 +396,7 @@ class Store:
     def erase(self, agent: str, seq: int, force: bool = False) -> dict:
         """GDPR path: drop payload + salts; the commitment stays but is unlinkable.
 
-        Refuses while a challenge covering this entry is open — erasure would
-        otherwise destroy the evidence under adjudication — and always records
-        the erasure itself on the ledger, so a deletion can never be silent."""
+        Refuses while a challenge covering this entry is open — erasure would."""
         with self._lock:
             blocking = self.open_challenges_over(agent, seq)
             if blocking and not force:
@@ -456,12 +441,7 @@ class Store:
 
     def jury_anchor(self, challenge_id: int) -> bytes | None:
         """The unpredictable seed for this challenge's jury draw: the root of the
-        first checkpoint sealed AFTER the challenge was filed.
-
-        A challenger cannot grind for a favourable jury because the value did not
-        exist when the challenge id was assigned. Returns None until such a
-        checkpoint exists — adjudication must wait rather than fall back to a
-        grindable seed."""
+        first checkpoint sealed AFTER the challenge was filed."""
         row = self.db.execute(
             "SELECT agent, anchor_after FROM challenges WHERE id=?", (challenge_id,)).fetchone()
         if row is None:
@@ -513,9 +493,7 @@ class Store:
     def verify_verdict(self, challenge_id: int) -> dict:
         """Is this verdict actually backed by a jury draw that reproduces?
 
-        Re-derives the committee from the recorded anchor and checks the claimed
-        jurors match. A verdict written directly to the store carries no evidence
-        and is reported as unbacked rather than silently trusted (P5)."""
+        Re-derives the committee from the recorded anchor and checks the claimed."""
         from jury import sample_jury                       # local: avoids import cycle
         row = self.db.execute(
             "SELECT agent, verdict, evidence, seq_from, seq_to FROM challenges WHERE id=?",

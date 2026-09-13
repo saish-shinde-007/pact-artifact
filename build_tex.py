@@ -1,21 +1,7 @@
 #!/usr/bin/env python3
-"""Render PAPER.md into IEEEtran LaTeX (main.tex) for submission.
-
-Same rule as build_ieee.py: PAPER.md is the single source of truth and main.tex is
-GENERATED. Hand-editing the generated artifact is exactly how the HTML preview drifted
-out of sync with the paper and kept reporting withdrawn numbers for several revisions.
-
-    python3 build_tex.py
-
-NOT COMPILED OR VERIFIED. There is no LaTeX toolchain on this machine (no pdflatex,
-xelatex, latexmk or tectonic), so this output has never been run through a compiler.
-Upload main.tex plus figs/loom.png to Overleaf, select pdfLaTeX, and expect to fix
-something. Do not submit without compiling it yourself first.
-
-References are emitted as a literal `thebibliography` rather than a .bib file. Every
-entry was verified against its primary source by hand; re-parsing that text into BibTeX
-fields would risk corrupting citations that are known-correct, for no gain — IEEEtran
-accepts thebibliography directly and Overleaf needs no bibtex pass for it.
+"""Render PAPER.md into IEEEtran main.tex - main.tex is GENERATED, never hand-edited.
+References emit as an inline thebibliography, bare URLs get url-wrapped, '(Fig. 1)'
+maps to the loom figure ref. Overleaf: main.tex + figs/loom.png, pdfLaTeX.
 """
 import re
 from pathlib import Path
@@ -92,10 +78,9 @@ def cites(s: str) -> str:
 
 
 def inline(s: str, code: list) -> str:
-    """Markdown inline -> LaTeX. Code spans are pulled out before escaping so that
-    underscores and hashes inside them are not mangled twice. Bare URLs are pulled
-    out the same way and come back wrapped in \\url{}, so they hyphenate at
-    slashes instead of overrunning the column (r15 was 39pt into the margin)."""
+    r"""Markdown inline -> LaTeX. Code spans and bare URLs are pulled out before
+    escaping (so nothing is mangled twice) and come back as texttt / url-wrapped,
+    which lets long URLs break at slashes instead of overrunning the column."""
     urls = []
     def _grab_url(m):
         u = m.group(0).rstrip(".,;:")

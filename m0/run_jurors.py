@@ -1,38 +1,7 @@
 #!/usr/bin/env python3
-"""PACT — put the 70 corpus items to real evaluator models and record verdicts.
-
-This is the harness behind E13. It takes a list of juror models, puts every item
-in `jury_sample.json` to each of them under the prompt in `juror_prompt.py`, and
-writes a verdict file that `e13.py` and `ci.py` read directly.
-
-WHY IT EXISTS IN THIS FORM
---------------------------
-The measurement in the paper covers three tiers of ONE vendor, which leaves a
-confound the paper names and cannot settle with that data: models from one
-vendor share tuning lineage, so correlated errors may be inherited rather than
-intrinsic to model judgment. Separating the two needs jurors from unrelated
-vendors judging the same corpus under the same framing. This harness is
-vendor-agnostic for that reason: a juror is a model id, and the transport is one
-text-completion endpoint.
-
-HOW IT REFUSES TO LIE TO YOU
-----------------------------
-Three properties, because silent degradation has cost this project real debugging
-time before:
-
-  1. One item per request, no conversational history. Items cannot influence one
-     another and presentation order cannot matter.
-  2. A juror with ANY missing verdict is written as `"complete": false` and is
-     reported as incomplete on stdout. It is never quietly padded, defaulted to
-     CLEARED, or dropped without a line saying so.
-  3. Every run records provenance: endpoint, model id, temperature, the sha256 of
-     the prompt that produced it, UTC timestamp, and per-juror failure counts.
-
-Run:
-  export FAL_KEY=...            # or: --env-file /path/to/.env
-  ./.venv/bin/python3 run_jurors.py --out jury_verdicts_xvendor.json
-  ./.venv/bin/python3 run_jurors.py --models openai/gpt-4o-mini,qwen/qwen3-32b
-  ./.venv/bin/python3 run_jurors.py --resume      # fill only missing verdicts
+"""Put the corpus to any set of juror models over one text endpoint and write the verdict
+file e13/e15 read. One request per item, no history; a juror with missing verdicts is marked
+incomplete, never padded; endpoint, temperature, prompt hash and UTC time are stamped in.
 """
 import argparse
 import concurrent.futures as cf

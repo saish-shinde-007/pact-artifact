@@ -1,34 +1,41 @@
 #!/usr/bin/env python3
-"""PACT — E13: do real evaluator models fail INDEPENDENTLY?
-
-Every jury result in this paper rests on one assumption: that jurors drawn from
-different model families have uncorrelated errors, so aggregating them buys
-something. The protocol's diversity constraint — at most one juror per operator,
-at least three base-model families — is worth its cost only if that holds.
-
-It had never been tested. The detector families of E14 are hand-written rules, so
-they cannot speak to it. Here three real Claude model tiers adjudicate the same 70
-labeled code-review items blind, under one policy clause, and we measure:
-
-  A. per-model detection quality against the rule-based detectors
-  B. the independence test — if errors were independent, P(both wrong) would equal
-     P(A wrong) x P(B wrong). Observed/expected is the number that matters.
-  C. what that implies for a diversity-constrained jury
-
-Scope: three tiers of ONE vendor's models. Cross-vendor jurors would plausibly be
-less correlated, so the correlation measured here is an upper bound on what a
-cross-vendor panel would show — but it is measured, where the paper previously
-assumed. A cross-vendor replication is the obvious next experiment.
-
-Run: ./.venv/bin/python3 e13.py   (reads jury_sample.json + jury_verdicts.json in this dir)
+"""E13: do real evaluator models fail independently? A panel judges the same items blind;
+we report per-juror quality and pairwise observed/expected joint-error ratios.
+--verdicts takes any panel's file; --exclude-ids audit drops the label-conflicted items.
 """
+import argparse
 import json
 import os
 from itertools import combinations
 
-SAMPLE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jury_sample.json")
-VERDICTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jury_verdicts.json")
-RULE_BEST_F1 = 0.577          # best single rule-based detector, E14 neutral domain
+HERE = os.path.dirname(os.path.abspath(__file__))
+SAMPLE = os.path.join(HERE, "jury_sample.json")
+VERDICTS = "jury_verdicts.json"       # --verdicts default; resolved against HERE below
+def rule_best_f1(truth, ids):
+    """Best rule-based family F1 on EXACTLY these items — a stale full-corpus
+    constant here once mislabelled the audited baseline (0.577 vs contrastive's
+    0.414 on 59 items)."""
+    import neutral_detectors as ND
+    best = 0.0
+    for fam in ND.FAMILIES:
+        tp = fp = fn = 0
+        for i in ids:
+            pred = 1 if ND.family_call(fam, truth[i]["text"]) else 0
+            tp += pred and truth[i]["label"]
+            fp += pred and not truth[i]["label"]
+            fn += (not pred) and truth[i]["label"]
+        _, _, f = prf(tp, fp, fn)
+        best = max(best, f)
+    return best
+# Panel size reads as a word in the prose below. Spelling the small cases keeps the
+# sentences English for the panels anyone actually runs, and keeps a default run
+# byte-identical to the version that hardcoded "three".
+NUMBER_WORD = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+               7: "seven", 8: "eight", 9: "nine", 10: "ten"}
+
+
+def word(k):
+    return NUMBER_WORD.get(k, str(k))
 
 
 def prf(tp, fp, fn):
@@ -38,16 +45,35 @@ def prf(tp, fp, fn):
 
 
 def main():
-    if not os.path.exists(VERDICTS):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--verdicts", default=VERDICTS)
+    ap.add_argument("--exclude-ids", default="",
+                    help="comma-separated item ids to drop (see label_audit.py), or "
+                         "'audit' to take them from label_audit directly")
+    args = ap.parse_args()
+    verdicts = (args.verdicts if os.path.isabs(args.verdicts)
+                else os.path.join(HERE, args.verdicts))
+    if not os.path.exists(verdicts):
         print("no verdict file; run three model tiers over /tmp/jury_items.json and\n"
-              f"write {{'jurors': [{{'juror','verdicts'}}]}} to {VERDICTS}")
+              f"write {{'jurors': [{{'juror','verdicts'}}]}} to {verdicts}")
         return
     truth = {t["id"]: t for t in json.load(open(SAMPLE))}
-    jurors = json.load(open(VERDICTS))["jurors"]
+    jurors = json.load(open(verdicts))["jurors"]
     calls = {j["juror"]: {v["id"]: (1 if v["verdict"] == "VIOLATION" else 0)
                           for v in j["verdicts"] if v["id"] in truth} for j in jurors}
     names = list(calls)
     ids = sorted(set.intersection(*(set(m) for m in calls.values())))
+    if args.exclude_ids:
+        if args.exclude_ids.strip() == "audit":
+            import label_audit
+            _items, conf, _stands, exctx = label_audit.audit()
+            drop = {it["id"] for it, *_ in conf} | {it["id"] for it, *_ in exctx}
+        else:
+            drop = {int(x) for x in args.exclude_ids.split(",") if x.strip()}
+        dropped = sorted(i for i in ids if i in drop)
+        ids = [i for i in ids if i not in drop]
+        print(f"\nEXCLUDING {len(dropped)} items flagged by the label audit: {dropped}")
+        print("   (clause-grounded and computed blind of verdicts; see label_audit.py)")
     n = len(ids)
 
     print(f"\nE13 — real evaluator models as jurors ({len(names)} models, {n} items)\n")
@@ -55,17 +81,21 @@ def main():
     # ---- A. quality -------------------------------------------------------
     print("A. Detection quality")
     print(f"   {'juror':<16} {'P':>7} {'R':>7} {'F1':>7} {'errors':>8}")
+    qual = {}
     for nm in names:
         m = calls[nm]
         tp = sum(1 for i in ids if m[i] == 1 and truth[i]["label"] == 1)
         fp = sum(1 for i in ids if m[i] == 1 and truth[i]["label"] == 0)
         fn = sum(1 for i in ids if m[i] == 0 and truth[i]["label"] == 1)
         p, r, f = prf(tp, fp, fn)
+        qual[nm] = f
         errs = sum(1 for i in ids if m[i] != truth[i]["label"])
         print(f"   {nm:<16} {p:>7.3f} {r:>7.3f} {f:>7.3f} {errs:>8}")
-    print(f"   {'(best rule-based)':<16} {'':>7} {'':>7} {RULE_BEST_F1:>7.3f}")
-    print("   Real models clear the rule-based detectors comfortably, and unlike the")
-    print("   earlier corpus this one does NOT saturate: every model makes real errors,")
+    rb = rule_best_f1(truth, ids)
+    print(f"   {'(best rule-based)':<16} {'':>7} {'':>7} {rb:>7.3f}   (same items)")
+    cleared = sum(1 for nm in names if qual[nm] > rb)
+    print(f"   {cleared} of {len(names)} models beat the best rule-based family on these")
+    print("   items, and the corpus does not saturate: every model makes real errors,")
     print("   which is what makes the next section possible at all.")
 
     # ---- B. the independence test ----------------------------------------
@@ -98,7 +128,7 @@ def main():
     print(f"""
    VERDICT: errors are strongly CORRELATED — roughly {mean:.0f}x more joint failure
    than independence predicts. The models do not fail on different items; they
-   fail together, on the same hard items. {len(universal)} items defeat all three, and they
+   fail together, on the same hard items. {len(universal)} items defeat all {word(len(names))}, and they
    are concentrated in the cases pre-labelled as genuinely contested — the models
    converge on the easy calls and diverge into the SAME error on the hard ones.
    That is the worst possible failure shape for a jury: agreement where agreement
@@ -117,7 +147,7 @@ def main():
    measured complementarity rather than declared "family" is the design this
    result points to, and it is a sharper rule than the one the paper began with.
 
-   Scope, stated plainly: three tiers from ONE vendor, 70 items, one prompt
+   Scope, stated plainly: {word(len(names))} tiers from ONE vendor, {n} items, one prompt
    framing. Same-vendor models share training and tuning lineage, so this is an
    UPPER bound on correlation and the honest next experiment is a cross-vendor
    panel. But the direction is now measured rather than assumed, and the paper

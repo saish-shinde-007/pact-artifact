@@ -1,26 +1,9 @@
 #!/usr/bin/env python3
-"""PACT — uncertainty on the two headline numbers.
-
-E13 reports a 4.7x joint-error ratio and E14 a jury F1 of 0.256 against its best
-member's 0.577. Both are point estimates on 70 items. A reader cannot tell from a
-point estimate whether 4.7x is a finding or an artifact of which 70 items we happened
-to write, and the paper's own §VII-D shows how much that can matter — screener recall
-moves 0.167-0.500 across equally valid splits of the same corpus.
-
-This script puts intervals on the numbers the abstract leads with, and tests the
-independence null directly:
-
-  A. bootstrap CIs over items (resample the 70 items with replacement)
-  B. permutation test of H0: the two models' errors are independent
-     (hold each model's error COUNT fixed, permute WHICH items it errs on)
-  C. the E14 jury-vs-best-member gap, paired on items
-
-No new data is collected — this is the uncertainty already implied by the runs in
-e13.py and e14.py, made explicit. Deterministic: the PRNG is seeded from a fixed
-constant, so the intervals reproduce exactly.
-
-Run: ./.venv/bin/python3 ci.py
+"""Uncertainty on the headline numbers: item-bootstrap CIs (one resample per replicate,
+every pair scored on it) and permutation tests, deterministic by fixed seed. --exclude-ids
+audit reruns on the label-audited corpus; --exact-p prints the closed-form p beside the sampled one.
 """
+import argparse
 import json
 import os
 import random
@@ -54,14 +37,44 @@ def f1(pred, lab):
     return 2 * p * r / (p + r) if p + r else 0.0
 
 
+def exclusion_set(spec):
+    """--exclude-ids, same convention as e15.py: a comma-separated id list, or the
+    literal 'audit' to take the ids straight from label_audit.audit() so the exclude
+    list cannot drift from the audit that justifies it."""
+    if not spec:
+        return frozenset()
+    if spec.strip() == "audit":
+        import label_audit
+        _items, conf, _stands, exctx = label_audit.audit()
+        return frozenset({it["id"] for it, *_ in conf} | {it["id"] for it, *_ in exctx})
+    return frozenset(int(x) for x in spec.split(",") if x.strip())
+
+
+def apply_exclusions(ids, drop, where):
+    """Drop `drop` from one section's id universe, printing what went. The two
+    sections are filtered separately because their universes differ (E13's is the
+    verdict-file intersection, E14's is the whole neutral corpus)."""
+    if not drop:
+        return ids
+    dropped = [i for i in ids if i in drop]
+    missing = sorted(drop - set(ids))
+    print(f"\n{where}: EXCLUDING {len(dropped)} of {len(ids)} items flagged by the label "
+          f"audit\n   {dropped}")
+    print("   (clause-grounded and computed blind of verdicts; see label_audit.py)")
+    if missing:
+        print(f"   !! requested ids absent from this corpus, ignored: {missing}")
+    return [i for i in ids if i not in drop]
+
+
 # ---------------------------------------------------------------- E13
-def e13_intervals(rng):
+def e13_intervals(rng, drop=frozenset(), exact_p=False):
     truth = {t["id"]: t for t in json.load(open(os.path.join(HERE, "jury_sample.json")))}
     jurors = json.load(open(os.path.join(HERE, "jury_verdicts.json")))["jurors"]
     calls = {j["juror"]: {v["id"]: (1 if v["verdict"] == "VIOLATION" else 0)
                           for v in j["verdicts"] if v["id"] in truth} for j in jurors}
     names = list(calls)
     ids = sorted(set.intersection(*(set(m) for m in calls.values())))
+    ids = apply_exclusions(ids, drop, "E13")
     n = len(ids)
     # err[name][i] = 1 if that model got item i wrong
     err = {nm: [1 if calls[nm][i] != truth[i]["label"] else 0 for i in ids] for nm in names}
@@ -82,44 +95,64 @@ def e13_intervals(rng):
 
     print("\nB. Joint-error ratio (observed / independence-expected), with CI and an")
     print("   exact-style permutation test of H0: this pair's errors are independent.")
-    print(f"   {'pair':<32} {'ratio':>7}  {'95% CI':>18} {'joint':>6} {'p':>9}")
-    ratios_pt, ratio_boots = [], []
-    for a, b in combinations(names, 2):
-        ea, eb = err[a], err[b]
-        joint = sum(1 for x, y in zip(ea, eb) if x and y)
-        pa, pb = sum(ea) / n, sum(eb) / n
-        exp = pa * pb * n
-        pt = (joint / n) / (pa * pb) if pa and pb else float("nan")
-        ratios_pt.append(pt)
-
-        boot = []
-        for _ in range(B):
-            idx = [rng.randrange(n) for _ in range(n)]
+    if exact_p:
+        # The null (error counts fixed, missed items randomised) is hypergeometric;
+        # e15.perm_p() is the closed form, and this column audits the sampler.
+        # FLOOR = sampled p pinned at 1/(B+1); only the exact column is that small.
+        from e15 import perm_p       # import is lazy: e15 imports ci's helpers back
+    print(f"   {'pair':<32} {'ratio':>7}  {'95% CI':>18} {'joint':>6} {'p':>9}"
+          + (f" {'exact p':>10}" if exact_p else ""))
+    # One resample per replicate, every pair scored on it. v1 resampled each pair
+    # independently and zip-averaged the columns, which destroyed item covariance
+    # and narrowed the mean-ratio CI ([3.3,9.4] published; correct is wider).
+    pairs = list(combinations(names, 2))
+    rngb = random.Random(SEED + ":e13-pairs")
+    pair_boot = {pr: [] for pr in pairs}
+    mean_boot = []
+    for _ in range(B):
+        idx = [rngb.randrange(n) for _ in range(n)]
+        vals = []
+        for a, b in pairs:
+            ea, eb = err[a], err[b]
             ja = sum(ea[j] for j in idx)
             jb = sum(eb[j] for j in idx)
             jj = sum(1 for j in idx if ea[j] and eb[j])
-            if ja and jb:
-                boot.append((jj / n) / ((ja / n) * (jb / n)))
-        ratio_boots.append(boot)
-        lo, hi = ci(boot)
+            r = (jj / n) / ((ja / n) * (jb / n)) if ja and jb else None
+            if r is not None:
+                pair_boot[(a, b)].append(r)
+            vals.append(r)
+        if all(v is not None for v in vals):
+            mean_boot.append(sum(vals) / len(vals))
 
-        # permutation null: each model's error COUNT is fixed; which items it misses
-        # is independent of the other model. Count joint failures under that null.
+    ratios_pt = []
+    rngp = random.Random(SEED + ":e13-perm")
+    for a, b in pairs:
+        ea, eb = err[a], err[b]
+        joint = sum(1 for x, y in zip(ea, eb) if x and y)
+        pa, pb = sum(ea) / n, sum(eb) / n
+        pt = (joint / n) / (pa * pb) if pa and pb else float("nan")
+        ratios_pt.append(pt)
+        lo, hi = ci(pair_boot[(a, b)])
+
+        # Permutation null: error counts fixed, which items each misses randomised.
         ka, kb = sum(ea), sum(eb)
         pos = list(range(n))
         ge = 0
         for _ in range(B):
-            sa = set(rng.sample(pos, ka))
-            sb = set(rng.sample(pos, kb))
+            sa = set(rngp.sample(pos, ka))
+            sb = set(rngp.sample(pos, kb))
             if len(sa & sb) >= joint:
                 ge += 1
         p = (ge + 1) / (B + 1)          # add-one, so p is never reported as 0
         star = "" if p >= 0.05 else ("  **" if p < 0.01 else "  *")
+        tail = ""
+        if exact_p:
+            pe = perm_p(n, ka, kb, joint)
+            tail = f" {pe:>10.2e}" + ("  FLOOR" if ge == 0 else "")
         print(f"   {a + ' / ' + b:<32} {pt:>6.1f}x  [{lo:>5.1f}, {hi:>5.1f}] {joint:>6} "
-              f"{p:>9.4f}{star}")
+              f"{p:>9.4f}{star}{tail}")
 
     mean_pt = sum(ratios_pt) / len(ratios_pt)
-    mean_boot = [sum(c) / len(c) for c in zip(*ratio_boots)]
     mlo, mhi = ci(mean_boot)
     print(f"\n   mean ratio {mean_pt:.1f}x, 95% CI [{mlo:.1f}, {mhi:.1f}]")
     frac = sum(1 for m in mean_boot if m > 1.0) / len(mean_boot)
@@ -128,9 +161,12 @@ def e13_intervals(rng):
 
     print("\nC. Items all models get wrong")
     uni = [i for i in range(n) if all(err[nm][i] for nm in names)]
+    # 2B replicates: at B the 97.5th percentile sat on a knife edge between 9/70
+    # and 10/70 across seeds.
+    rngu = random.Random(SEED + ":e13-uni")
     boot = []
-    for _ in range(B):
-        idx = [rng.randrange(n) for _ in range(n)]
+    for _ in range(2 * B):
+        idx = [rngu.randrange(n) for _ in range(n)]
         boot.append(sum(1 for j in idx if all(err[nm][j] for nm in names)) / n)
     lo, hi = ci(boot)
     print(f"   {len(uni)} of {n} ({len(uni) / n:.3f}), 95% CI [{lo:.3f}, {hi:.3f}]")
@@ -139,12 +175,14 @@ def e13_intervals(rng):
 
 
 # ---------------------------------------------------------------- E14
-def e14_intervals(rng):
+def e14_intervals(rng, drop=frozenset()):
     import e14
     import neutral_detectors as ND
     from jury import sample_jury, tally
 
     items = e14.ITEMS
+    kept = set(apply_exclusions([it["id"] for it in items], drop, "E14"))
+    items = [it for it in items if it["id"] in kept]
     lab = [it["label"] for it in items]
     n = len(items)
     seats = sample_jury(b"e14-seed")[0]
@@ -201,9 +239,19 @@ def e14_intervals(rng):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--exclude-ids", default="",
+                    help="comma-separated item ids to drop (see label_audit.py), or "
+                         "'audit' to take them from label_audit directly. Applies to "
+                         "BOTH the E13 and the E14 intervals.")
+    ap.add_argument("--exact-p", action="store_true",
+                    help="add the closed-form (hypergeometric) p next to the simulated "
+                         "permutation p, and mark rows pinned at the 1/(B+1) floor")
+    args = ap.parse_args()
+    drop = exclusion_set(args.exclude_ids)
     rng = random.Random(SEED)
-    e13_intervals(rng)
-    e14_intervals(rng)
+    e13_intervals(rng, drop, args.exact_p)
+    e14_intervals(rng, drop)
     print("\nAll intervals are percentile bootstrap over ITEMS, which is the sampling")
     print("unit that would change if the corpus were rewritten. They do NOT cover")
     print("variation from model choice, prompt framing, or policy clause — those are")

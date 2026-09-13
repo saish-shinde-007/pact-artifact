@@ -1,28 +1,9 @@
 #!/usr/bin/env python3
-"""E14 — do the adjudication findings reproduce on a NEUTRAL domain?
-
-The earlier experiments were measured on a corpus since withdrawn, using detectors
-the same author wrote. Both facts limit what those results can claim. This re-runs
-the same protocol questions on repository secret handling — ordinary engineering
-content — where the detectors were committed BEFORE six separate language-model
-agents wrote the data in isolation, neither side able to tune to the other. Those
-agents are related models, not independent human authors -- a confound the paper
-discloses, since the E13 jurors share that lineage.
-
-The claims under test, each a property of the voting rule rather than the domain:
-
-  1. A diverse jury raises precision over its best single member.
-  2. A plain 2/3 rule can score BELOW its best member by outvoting a lone
-     correct detector.
-  3. The lone-detector rule converts auto-clears into escalations, buying
-     containment at the cost of human load.
-  4. The per-operator cap, not the vote threshold, is what bounds collusion.
-
-If these reproduce here, they are protocol properties and the paper can state
-them generally. If they vanish, they were artifacts of the earlier corpus.
-
-Run: ./.venv/bin/python3 e14.py
+"""E14: the voting rules on rule-based detector families, oracle-free. The families were
+committed before six isolated model agents wrote the data, so neither side could tune
+to the other. --exclude-ids audit reruns everything on the label-audited corpus.
 """
+import argparse
 import math
 from itertools import combinations
 
@@ -54,6 +35,27 @@ def juror_vote(family, text, juror_id):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--exclude-ids", default="",
+                    help="comma-separated item ids to drop (see label_audit.py), or "
+                         "'audit' to take them from label_audit directly")
+    args = ap.parse_args()
+
+    global ITEMS, NVIOL
+    dropped = []
+    if args.exclude_ids:
+        if args.exclude_ids.strip() == "audit":
+            import label_audit
+            _items, conf, _stands, exctx = label_audit.audit()
+            drop = {it["id"] for it, *_ in conf} | {it["id"] for it, *_ in exctx}
+        else:
+            drop = {int(x) for x in args.exclude_ids.split(",") if x.strip()}
+        dropped = sorted(it["id"] for it in ITEMS if it["id"] in drop)
+        ITEMS = [it for it in ITEMS if it["id"] not in drop]
+        NVIOL = sum(i["label"] for i in ITEMS)
+        print(f"\nEXCLUDING {len(dropped)} items flagged by the label audit: {dropped}")
+        print("   (clause-grounded and computed blind of verdicts; see label_audit.py)")
+
     print(f"\nE14 — neutral domain (repository secret handling), {len(ITEMS)} items, "
           f"{NVIOL} violations\n")
     print("Detectors were committed before the data existed; six separate model")
@@ -75,10 +77,22 @@ def main():
                   if it["label"] == 1 and not ND.family_call(fam, it["text"])}
             for fam in ND.FAMILIES}
     print("\n   pairwise disagreement on missed violations (are blind spots distinct?)")
+    # Mutual = both directions non-empty; a nested pair (one miss-set inside the
+    # other) is not complementarity and must not be counted as if it were.
+    mutual = nested = identical = 0
     for a, b in combinations(ND.FAMILIES, 2):
         only_a, only_b = len(miss[a] - miss[b]), len(miss[b] - miss[a])
+        if only_a and only_b:
+            mutual += 1
+        elif only_a or only_b:
+            nested += 1
+        else:
+            identical += 1
         if only_a or only_b:
             print(f"     {a} / {b}: {only_a} caught only by {b}, {only_b} only by {a}")
+    npairs = mutual + nested + identical
+    print(f"   mutually distinct blind-spot pairs: {mutual} of {npairs}"
+          f" (nested: {nested}, identical: {identical})")
 
     # ---- 2/3. the jury, symmetric vs lone-detector -------------------------
     seats = sample_jury(b"e14-seed")[0]
@@ -134,6 +148,7 @@ def main():
                  and sum(1 for f in ND.FAMILIES if ND.family_call(f, it["text"])) >= 4]
     print(f"   ({len(clear_cut)} violations seen by >=4 of 5 families — a clean baseline)")
     print(f"   {'colluders':<12} {'cap ON':>18} {'cap OFF':>18}")
+    coll_rates = {}
     for n_coll in (0, 3, 5, 7):
         coll = set(ids[:n_coll])
         on = off = 0
@@ -151,7 +166,50 @@ def main():
                     else:
                         off += 1
         m = max(len(clear_cut), 1)
+        coll_rates[n_coll] = (on / m, off / m)
         print(f"   {n_coll:>2} registered  {on / m:>17.1%} {off / m:>17.1%}")
+
+    if dropped:
+        # The VERDICT paragraph below quotes the FULL 70-item corpus. Rather than
+        # print prose whose numbers no longer match the run, restate the same four
+        # claims from the figures this run actually produced.
+        sym, asym = states["symmetric 2/3"], states["+ lone-detector"]
+
+        def leak(st):
+            v = [s for s, it in zip(st, ITEMS) if it["label"] == 1]
+            return sum(1 for s in v if s == "cleared") / len(v)
+
+        def load(st):
+            return sum(1 for s in st if s == "escalated") / len(st)
+
+        symf = prf([1 if s == "violation" else 0 for s in sym])[2]
+        asymf = prf([1 if s == "violation" else 0 for s in asym])[2]
+        print(f"""
+  VERDICT on the AUDITED corpus ({len(ITEMS)} items, {NVIOL} violations) — the four
+  claims restated from THIS run's figures. The paragraph the default run prints
+  describes the full 70-item corpus and is not reprinted here.
+
+  1. "a 2/3 jury can score below its own best member":
+       jury F1 {symf:.3f} vs best single '{best_name}' {best_f1:.3f} ({symf - best_f1:+.3f})
+       -> {'STILL HOLDS' if symf < best_f1 else 'DOES NOT HOLD'}
+  2. "the lone-detector rule buys containment with human load":
+       leaked {leak(sym):.3f} -> {leak(asym):.3f}, human load {load(sym):.1%} -> {load(asym):.1%}
+       machine F1 unchanged by the rule ({symf:.3f} -> {asymf:.3f}) by construction:
+       it converts auto-clears into escalations and decides nothing new
+       -> {'STILL HOLDS' if leak(asym) < leak(sym) and load(asym) > load(sym) else 'DOES NOT HOLD'}
+  3. "the per-operator cap bounds collusion": at 7 colluders
+       cap ON {coll_rates[7][0]:.1%} vs cap OFF {coll_rates[7][1]:.1%} conviction on
+       {len(clear_cut)} clear-cut violations -> {'STILL HOLDS' if coll_rates[7][0] > coll_rates[7][1] else 'DOES NOT HOLD'}
+       (each step is one item at this corpus size; not independently conclusive)
+  4. "a diverse jury raises precision over its best member":
+       best single {best_p:.3f} -> jury {jury_prec:.3f} ({jury_prec - best_p:+.3f})
+       -> {'HOLDS HERE' if jury_prec > best_p else 'STILL DOES NOT HOLD'}
+
+  Dropping {len(dropped)} of 32 violation labels removes {len(dropped)} positives and no negatives,
+  so every rate above rests on {NVIOL} violations rather than 32, and every precision
+  move comes from the true-positive side alone. Read these as directions, not as
+  precise effect sizes.""")
+        return
 
     print("""
   VERDICT — three of four claims generalize, one does not.

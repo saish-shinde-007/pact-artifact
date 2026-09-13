@@ -1,19 +1,6 @@
 #!/usr/bin/env python3
-"""PACT M3 — E8: does the federation actually behave the way §VI claims?
-
-Four claims under test:
-  1. Ledger load is O(1) in query rate and O(operators) — the scaling law.
-  2. Aggregation compute fits inside the epoch budget, so pin latency is set by
-     the configured interval rather than by compute.
-  3. Every action stays individually provable to the planetary root, and the
-     proof grows logarithmically — "aggregation batches bandwidth, never trust".
-  4. Equivocation by a shard is detected by any two honest witnesses.
-
-Aggregation here operates on synthetic subtree roots: signing cost was measured
-separately in E1, and mixing it in would hide the aggregation arithmetic this
-experiment is about.
-
-Run: ./.venv/bin/python3 e8.py
+"""E8: federation ledger cost, composed inclusion proofs across tiers, and
+equivocation detection.
 """
 import json
 import time

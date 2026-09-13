@@ -1,20 +1,6 @@
-"""PACT M1 — jury protocol. DOMAIN-AGNOSTIC.
-
-VRF-style diversity-constrained sampling, commit-reveal voting, supermajority
-tally with human escalation, abstention handling, and recursion (each juror
-verdict is itself logged as a covered action).
-
-This module holds NO domain vocabulary. Detection is injected: a detector is any
-callable (family, text) -> bool, and the juror pool's families come from whatever
-detector module is in use. The default domain is repository secret handling
-(neutral_detectors.py).
-
-That separation is deliberate. The findings this protocol produces — that a 2/3
-majority can score below its own best member, that the per-operator cap rather
-than the vote threshold is what bounds collusion, that the lone-detector rule
-buys containment rather than detection — are properties of the VOTING RULE and
-reproduce across domains (E14). Keeping the rule free of any domain's words is
-what makes that testable rather than asserted.
+"""Diversity-constrained jury sampling (VRF-style seed, per-operator cap), commit-reveal
+voting, and the tally rules under test: symmetric 2/3 vs lone-detector, with protected
+abstention and equivocation detection.
 """
 import math
 import os
@@ -63,11 +49,7 @@ def sample_jury(seed: bytes, pool=POOL, k: int = 11, min_families: int = 3):
 def juror_vote(juror: dict, text: str, detector=None) -> dict:
     """VIOLATION/CLEARED from the injected domain detector, plus a deterministic
     per-juror flip so that same-family jurors differ slightly — real models of a
-    kind are correlated but not identical.
-
-    `detector` is any callable (family, text) -> bool. It defaults to the active
-    domain so callers need not pass one; passing a different one is how the same
-    protocol gets evaluated on a different domain."""
+    kind are correlated but not identical."""
     call = detector or _default_domain.family_call
     base = call(juror["family"], text)
     # deterministic ~8% idiosyncratic flip, seeded by juror+text
@@ -81,14 +63,7 @@ def juror_vote(juror: dict, text: str, detector=None) -> dict:
 
 def commit_phase(votes: list[dict], round_seed: bytes = b""):
     """Publish H(verdict || H(rationale) || nonce), where the nonce is 128 bits
-    of juror-held randomness.
-
-    The nonce MUST be secret and unpredictable. An earlier version derived it as
-    H(juror_id || round_seed) from public inputs; because the verdict space is
-    two values and the rationale is a short deterministic string, anyone could
-    precompute both candidate commitments per juror and read every vote before
-    the reveal — the hiding property was absent while the ceremony looked
-    correct. `round_seed` is retained only to domain-separate rounds."""
+    of juror-held randomness."""
     commits, nonces = [], []
     for v in votes:
         nonce = secrets.token_bytes(16) + H(round_seed)[:4]
@@ -100,11 +75,9 @@ def commit_phase(votes: list[dict], round_seed: bytes = b""):
 def reveal_phase(commits, nonces, revealed: list[dict]):
     """Verify each revealed vote against its commitment. Returns (ok, offenders)
     — a juror who commits one verdict and reveals another is named here."""
-    # Every reveal is checked, ABSTAIN included. An honest abstainer commits
-    # ABSTAIN and verifies normally; a juror that commits a verdict and then
-    # abstains at reveal has equivocated and is named. Exempting abstentions
-    # from the check would hand jurors a costless way to withdraw a vote they
-    # had already bound themselves to.
+    # Every reveal is checked, ABSTAIN included: committing a verdict and then
+    # abstaining at reveal is equivocation and is named — exempting abstention
+    # would let a juror costlessly withdraw a vote it had bound itself to.
     bad = [v["juror"] for c, nonce, v in zip(commits, nonces, revealed)
            if H(v["verdict"].encode() + H(v["rationale"].encode()) + nonce).hex() != c]
     return not bad, bad
@@ -136,16 +109,10 @@ def tally(votes: list[dict], severity: str = "S1", asymmetric: bool = False,
           families: list | None = None):
     """2/3 supermajority decides; otherwise, or if severity>=S2, escalate.
 
-    asymmetric=True adds the lone-detector rule: for catastrophic clauses a
-    single VIOLATION vote blocks auto-clearing and escalates to humans instead.
-    Symmetric majority voting otherwise silently suppresses a lone correct
-    detector — measured in E2, and the reason this option exists."""
-    # ABSTAIN is a verdict, not a missing vote (E13). A juror that declines to
-    # engage — as safety-tuned evaluator models do on exactly the severe content
-    # that most needs judging — must neither be counted toward either side nor
-    # punished as a process fault. If abstentions thin the panel below quorum or
-    # below its family floor, the case escalates rather than proceeding on
-    # whichever jurors happened to be least cautious.
+    asymmetric=True adds the lone-detector rule: for catastrophic clauses a."""
+    # ABSTAIN is a verdict, not a missing vote (E13): counted toward neither side
+    # and never punished. If abstentions thin the panel below quorum or its family
+    # floor, the case escalates rather than proceeding on the least cautious jurors.
     seated = len(votes)
     votes = [v for v in votes if v["verdict"] in ("VIOLATION", "CLEARED")]
     k = len(votes)
@@ -178,13 +145,7 @@ def adjudicate(store, challenge_id: int, agent: str, entry_text: str,
                evidence_class: str = "W3") -> dict:
     """Full path: sample -> commit-reveal -> tally -> (recursion) -> consequence.
 
-    `anchor` is the unpredictable value the jury draw is seeded from — in a
-    deployment a finalized block hash, here the root of a witnessed checkpoint
-    sealed AFTER the challenge was filed (Store.jury_anchor). Without it the
-    seed is a function of attacker-known inputs and a challenger can grind
-    challenge ids until a favourable jury is drawn.
-
-    colluders: juror ids that vote CLEARED regardless of truth (for E5)."""
+    `anchor` is the unpredictable value the jury draw is seeded from — in a."""
     seed = H((anchor or b"") + f"challenge:{challenge_id}:{agent}:{entry_text}".encode())
     jury, diag = sample_jury(seed)
     colluders = colluders or set()

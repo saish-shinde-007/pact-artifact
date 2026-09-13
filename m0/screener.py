@@ -1,12 +1,5 @@
-"""PACT M2 — rung-0 screener as a real trained classifier.
-
-Multinomial Naive Bayes over word unigrams plus character n-grams of the
-normalized text (so obfuscation like 's.a.r.i.n' is learnable rather than
-hand-coded). Stdlib only — the point is a genuine fitted model with a held-out
-evaluation, not a big one.
-
-The M1 screener was a keyword matcher over a keyword-built corpus, so it flagged
-83% of all traffic and made the funnel numbers meaningless. This replaces it.
+"""Trained screener that gates which log entries reach adjudication; its recall
+bounds what the jury ever sees.
 """
 import math
 from collections import defaultdict

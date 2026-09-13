@@ -1,15 +1,6 @@
 #!/usr/bin/env python3
-"""Render PAPER.md into the IEEE two-column HTML preview.
-
-PAPER.md is the single source of truth. The HTML is GENERATED, never hand-edited —
-hand-editing is exactly how the published artifact drifted out of sync with the
-paper (it kept reporting withdrawn numbers for several revisions). Regenerate with:
-
-    python3 build_ieee.py && open ieee.html
-
-Usage note: this renders the two-column *look* for review. The submission artifact
-is LaTeX/IEEEtran; this exists so the paper can be read in its final shape while
-still being written in Markdown.
+"""Render PAPER.md into ieee.html, a two-column IEEE-style preview for fast visual
+inspection; the submission artifact is built by build_tex.py instead.
 """
 import html
 import re

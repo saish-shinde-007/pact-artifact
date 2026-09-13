@@ -19,12 +19,33 @@ this project.
 ### On credential-shaped strings
 
 A corpus about credential handling necessarily contains strings that look like
-credentials. None of them are. Every such string was passed through
-`m0/scan_corpus.py` and **neutralized**: the prefix a shape-based detector keys on is
-preserved (`AKIA`, `ghp_`, `xoxb-`, `-----BEGIN`) while the body is replaced with an
-explicit `SYNTHETIC` marker. Nothing in this repository matches a live credential
-format for any provider, and `scan_corpus.py` runs in the test suite so that cannot
-regress.
+credentials. None of them are. The rule was neutralization through
+`m0/scan_corpus.py`: the prefix a shape-based detector keys on is preserved
+(`AKIA`, `ghp_`, `xoxb-`, `-----BEGIN`) while the body is replaced with an explicit
+`SYNTHETIC` marker.
+
+Two strings are exceptions to that rule, and we state them rather than pretend the
+rule held. Both match the live Stripe test-key *format* — GitHub push protection
+flagged the first when this repository was published, which is how the gap in our
+own gate was found:
+
+- **Item 28**, `sk_test_FAKE00000000000000000000` (benign_placeholder): the body
+  spells `FAKE` plus a zero run — self-announcing, labelled benign on purpose.
+- **Item 60**, `sk_test_51Hz…` (contested): deliberately realistic, because its
+  realism is what makes the item contested. It is structurally incapable of being a
+  working key — its 30-character body fits neither Stripe key era (24 characters
+  pre-2021, ~90+ after) — and it was verified as agent-fabricated.
+
+The first version of `scan_corpus.py` scanned `sk_live_` and never `sk_test_`, so it
+passed both while its documentation claimed otherwise. The gate now carries
+vendor-grade patterns for live *and* test formats, reports three classes (FAIL for
+any live-format string it cannot account for, WARN for the two strings above — each
+allowlisted by exact value with its justification in the source, printed on every
+run — and clean), and proves it fires via `--self-test` canaries built at runtime.
+It is wired into the test suite as checks 50–51, including a RED check that pins the
+`sk_test_` blind spot specifically. The corpus items themselves are unchanged: every
+jury verdict in the paper was rendered on these exact bytes, so the corpus is
+immutable as measured.
 
 ## How the corpus was built
 

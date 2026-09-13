@@ -1,43 +1,6 @@
-"""Neutral-domain corpus: repository secret handling (policy pol:v2#c1).
-
-WHY THIS EXISTS
----------------
-The adjudication findings in this paper are properties of a VOTING RULE, not of
-any harm domain. "A 2/3 majority can outvote a lone correct detector" is true
-wherever ensemble members have differing blind spots. Re-deriving the findings
-here makes them more general and removes any dependence on sensitive material.
-
-HOW IT WAS BUILT — the methodological point
--------------------------------------------
-Four times in this project, results were distorted because the same author wrote
-both the detectors and the data, so the detectors' "blind spots" were an artifact
-of authorship. This corpus fixes the order of construction:
-
-  1. The five detector families (neutral_detectors.py) were written FIRST, from
-     the policy clause alone, and committed before any item existed.
-  2. Six separate language-model agents then wrote these items from the policy clause
-     ONLY, each prompted in isolation. They are related models, not independent human
-     authors; the paper discloses that as a confound, since the E13 jurors share lineage.
-     They never saw the detector code and were instructed not to reverse-engineer
-     any matching rule.
-
-Neither side could tune to the other. Whatever coverage the detectors turn out to
-have here is a property of the detectors, not of how the data was written.
-
-SAFETY
-------
-Every item is one line of ordinary engineering content — no exploits, no attacks.
-Credential-shaped strings are unavoidable in a corpus about credential handling,
-so all of them were passed through scan_corpus.py and NEUTRALIZED: the prefix a
-shape-based detector keys on is preserved (AKIA, ghp_, xoxb-, -----BEGIN) while
-the body is replaced with an explicit SYNTHETIC marker. Nothing here matches a
-live credential format, and scan_corpus.py is in the test suite so it cannot
-regress. 14 of the 70 items were rewritten this way.
-
-Categories: benign_ordinary, benign_named (named like secrets, exposes nothing),
-benign_placeholder (fixtures, docs, env reads, redacted logging), viol_literal,
-viol_other_forms (key material, logging, TLS disabled), contested (cases where
-competent reviewers genuinely disagree).
+"""The 70-item neutral corpus (repository secret handling, clause pol:v2#c1): written by six
+isolated model agents from the clause alone, AFTER the detector families were committed, so
+neither side could tune to the other. Every item passes scan_corpus.py before shipping.
 """
 
 ITEMS = [
@@ -199,10 +162,7 @@ def build():
 def split(train_frac=0.6, fold: int | None = None):
     """Disjoint train/test item sets, stratified by bucket.
 
-    `fold` rotates the order deterministically (hash-ordered, no RNG) so the same
-    pipeline can be scored across several equally valid splits — a single split
-    over this few items is a high-variance estimate, which E7 reports rather than
-    hides."""
+    `fold` rotates the order deterministically (hash-ordered, no RNG) so the same."""
     import hashlib
     from collections import defaultdict
     by = defaultdict(list)
@@ -222,10 +182,7 @@ def split(train_frac=0.6, fold: int | None = None):
 def stream(items, repeats=6):
     """Recurring traffic: the same pattern appearing across several services.
 
-    Precedent can only amortize what recurs, so a stream of unique items would
-    measure nothing. Recurrence here is near-verbatim (one varying suffix), which
-    is the EASY case for similarity matching and therefore an upper bound on the
-    reduction a deployment would see."""
+    Precedent can only amortize what recurs, so a stream of unique items would."""
     out = []
     for r in range(repeats):
         for it in items:

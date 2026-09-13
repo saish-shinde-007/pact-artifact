@@ -1,16 +1,5 @@
-"""PACT M2 — the precedent graph.
-
-Adjudicated cases become citable ledger objects. A new challenge is matched
-against them; a close enough match on the SAME policy clause yields an
-auto-verdict citing its precedent chain, with no jury convened. Conflicting
-precedents above threshold force escalation instead of a coin-flip, and any
-node can be superseded by a full-jury or human ruling so early errors do not
-fossilize (paper §VII-B).
-
-Similarity here is cosine over hashed character n-grams — a lightweight stand-in
-for the learned embedding a deployment would use. It is deliberately crude: the
-risk it exposes (surface-similar but oppositely-labeled text matching) is the
-real failure mode of precedent matching, and E7 measures it rather than hiding it.
+"""Precedent graph: verdicts become citable precedents that auto-resolve repeat
+challenges, with supersession and conflict escalation.
 """
 import math
 from collections import defaultdict

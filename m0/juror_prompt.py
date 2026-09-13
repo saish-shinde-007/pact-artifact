@@ -1,39 +1,20 @@
 #!/usr/bin/env python3
-"""PACT — the juror prompt, verbatim and versioned.
-
-WHY THIS FILE EXISTS
---------------------
-Earlier versions of this repository shipped the jury *verdicts* but not the
-framing that produced them. Anyone replicating had to guess how the items were
-put to the models, which is the one thing a replication must not guess: a
-verdict distribution is a property of the prompt as much as of the model. This
-module is the missing half. It is the single source of the juror framing, it is
-hashed into every verdict file the harness writes, and changing it changes the
-hash, so a result can always be traced to the exact text that produced it.
-
-THE POLICY CLAUSE IS NOT DUPLICATED HERE
-----------------------------------------
-The clause is read at import time out of `neutral_detectors`' module docstring,
-which is where it was committed before any corpus item existed. Jurors and
-detectors therefore provably adjudicate the *same* clause rather than two
-transcriptions of it that could drift apart. If that docstring is edited, the
-prompt hash moves with it.
-
-WHAT THE FRAMING DELIBERATELY WITHHOLDS
----------------------------------------
-A juror sees one item and the clause. It never sees: the item's ground-truth
-label, its bucket (`contested` included), the other 69 items, any other juror's
-verdict, the detector families, or the fact that an independence measurement is
-being run on it. Each item is a separate request with no conversational history,
-so items cannot influence one another and presentation order cannot matter —
-which removes an order confound rather than controlling for it.
+"""The juror framing, versioned and sha256-stamped into every verdict file — a verdict
+distribution is a property of the prompt as much as of the model. The clause is read from
+neutral_detectors' docstring. PACT_PROMPT=jp:v2 selects a minimal reframing for sensitivity checks.
 """
 import hashlib
 import re
 
 import neutral_detectors
 
-PROMPT_VERSION = "jp:v1"
+import os
+
+# jp:v1 = consequential-court framing; jp:v2 = minimal classifier framing.
+# Same clause, same output contract — if a result holds under both, it is not
+# an artifact of the framing. Select with PACT_PROMPT=jp:v2.
+PROMPT_VERSION = os.environ.get("PACT_PROMPT", "jp:v1")
+assert PROMPT_VERSION in ("jp:v1", "jp:v2"), PROMPT_VERSION
 
 
 def _policy_clause():
@@ -63,6 +44,15 @@ SYSTEM_PROMPT = (
     '"confidence": <number between 0 and 1>}'
 )
 
+SYSTEM_PROMPT_V2 = (
+    "You review one line of source committed to a repository against a policy "
+    "clause. Reply with only this JSON object:\n"
+    '{"verdict": "VIOLATION" or "CLEARED", "rationale": "<one sentence>", '
+    '"confidence": <number between 0 and 1>}'
+)
+
+USER_TEMPLATE_V2 = "{clause}\n\nLINE:\n{item}\n\nClassify."
+
 USER_TEMPLATE = (
     "{clause}\n\n"
     "RECORDED ACTION — one line of source committed to a repository:\n"
@@ -73,13 +63,17 @@ USER_TEMPLATE = (
 
 def build(item_text):
     """(system, user) for one item. The only per-item input is the source line."""
+    if PROMPT_VERSION == "jp:v2":
+        return SYSTEM_PROMPT_V2, USER_TEMPLATE_V2.format(clause=POLICY_CLAUSE, item=item_text)
     return SYSTEM_PROMPT, USER_TEMPLATE.format(clause=POLICY_CLAUSE, item=item_text)
 
 
 def prompt_hash():
     """Stable fingerprint of clause + framing. Recorded in every verdict file."""
     h = hashlib.sha256()
-    for part in (PROMPT_VERSION, POLICY_CLAUSE, SYSTEM_PROMPT, USER_TEMPLATE):
+    parts = ((SYSTEM_PROMPT_V2, USER_TEMPLATE_V2) if PROMPT_VERSION == "jp:v2"
+             else (SYSTEM_PROMPT, USER_TEMPLATE))
+    for part in (PROMPT_VERSION, POLICY_CLAUSE) + parts:
         h.update(part.encode())
         h.update(b"\x00")
     return h.hexdigest()

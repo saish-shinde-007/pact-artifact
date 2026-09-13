@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
-"""PACT M0 serving shim — OpenAI-style endpoint that logs every completion.
-
-POST /v1/chat/completions  -> mock model reply (or upstream passthrough via
-PACT_UPSTREAM), entry appended to the evidence log, receipt returned in
-X-PACT-Receipt header and in the JSON body.
-
-Run:  python3 shim.py            (port 8787, db pact.db)
-Try:  curl -s localhost:8787/v1/chat/completions -d '{"messages":[{"role":"user","content":"hi"}]}'
+"""Serving shim: wraps a completion call so every response is logged as a covered
+action and returns a receipt with its log position.
 """
 import json
 import os

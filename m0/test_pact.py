@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-"""M0 checks — each assert fails if the guarantee it names breaks.
-
-Includes RED proofs: we tamper/fork and assert detection actually fires.
-Run: python3 test_pact.py
+"""M0 checks — each assert fails if the guarantee it names breaks. RED checks tamper or fork
+and assert detection actually fires. Run: python3 test_pact.py
 """
 import os
 import sys
@@ -464,9 +462,8 @@ assert s14.disclose(A, 0)["commits_match"] is False, "substitution must be detec
 
 
 # ------------------------------------------- Tier 3 review fixes (tests that can fail)
-# 43. RED (3.2): the supermajority threshold must be pinned. A 6/11 split is the
-#     region where 2/3 and 1/2 rules diverge; without this, the threshold could be
-#     silently loosened to a simple majority with every other check still passing.
+# 43. RED (3.2): pin the supermajority threshold. 6/11 is where 2/3 and 1/2 rules
+#     diverge; without this the threshold could silently loosen to simple majority.
 _split = [{"juror": f"j{i}", "verdict": "VIOLATION" if i < 6 else "CLEARED",
            "rationale": "r"} for i in range(11)]
 assert tally(_split)[0] == "ESCALATE", "6/11 is a majority but NOT a 2/3 supermajority"
@@ -514,11 +511,9 @@ assert tally(_unan, severity="S0", evidence_class="W0")[0] == "VIOLATION", \
     "advisory findings may rest on weak evidence"
 assert evidence_sufficient("S3", "W3") and not evidence_sufficient("S3", "W2")
 
-# 47. RED (2.2 / E14): the corpus must not have been written to the detectors'
-#     own vocabulary. Detectors were committed BEFORE the data and the authors
-#     never saw them, so every family must retain genuinely distinct blind spots.
-#     If one family ever covers every violation the others miss, the corpus has
-#     been tuned to the detectors and the diversity result means nothing.
+# 47. RED (2.2 / E14): detectors were committed BEFORE the data, so families must
+#     keep distinct blind spots — if one family covers every violation the others
+#     miss, the corpus was tuned to the detectors and the diversity result is void.
 import neutral_detectors as _ND
 _items = corpus.build()
 _missed = {f: {i["id"] for i in _items
@@ -530,5 +525,29 @@ assert _distinct, "no family pair has mutually distinct blind spots — corpus i
 assert not any(not m for m in _missed.values()), \
     "a family misses nothing; a perfect detector means the corpus cannot discriminate"
 
-print("ALL CHECKS PASS (49/49) — including 23 RED checks, each verified to fail "
+# 50. the corpus safety gate holds on everything this repo ships: no live-format
+#     string it cannot account for, and the two allowlisted Stripe-shaped strings
+#     (items 28, 60) surface as WARNs, never silently.
+import json as _json
+import scan_corpus as _SC
+_ship = [("neutral_corpus.build()", corpus.build()),
+         ("jury_sample.json", _json.load(open(os.path.join(
+             os.path.dirname(os.path.abspath(__file__)), "jury_sample.json"))))]
+for _lbl, _items in _ship:
+    _f = _SC.scan(_items)
+    assert not [x for x in _f if x[1] == "FAIL"], f"unaccounted live-format string in {_lbl}"
+    assert len([x for x in _f if x[1] == "WARN"]) == 2, \
+        f"{_lbl}: expected exactly the 2 documented allowlisted strings"
+
+# 51. RED (gate): the gate must actually FIRE. Inject runtime-built canaries in
+#     live key formats (never literals in this file) and assert FAIL comes back;
+#     the sk_live_-only blind spot that let sk_test_ ship is pinned forever.
+_canaries = ["ghp_" + "A1b2C3d4" * 4 + "Xtra",          # GitHub PAT, 36-char body
+             "sk_test_" + "Qw94" * 6,                    # Stripe TEST key, the v1 blind spot
+             "sk_live_" + "Qw94" * 6,                    # Stripe live
+             "-----BEGIN EC PRIVATE KEY-----\nAA=="]     # PEM without fake marker
+for _c in _canaries:
+    assert any(x[1] == "FAIL" for x in _SC.scan([_c])), f"gate silent on canary {_c[:24]!r}"
+
+print("ALL CHECKS PASS (51/51) — including 24 RED checks, each verified to fail "
       "when the code it guards is reverted (grep 'RED' for the list)")

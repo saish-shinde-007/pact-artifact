@@ -1,15 +1,5 @@
-"""PACT M4 — the reciprocal witnessing mesh (WEFT §V-B).
-
-Agent-to-agent sessions close with co-signed conduct digests: each endpoint signs
-its commitment to the transcript, the peer's identity, and the policy context, and
-files the result in its own log. Two cross-linked records per interaction.
-
-Why it matters: an uninstrumented agent that transacts with an instrumented one
-still leaves an attributable record of that interaction, and declining to co-sign
-is itself a recorded, visible event rather than silence.
-
-Evidence classes follow the paper's W-ladder: a mutually signed digest is W2, a
-unilateral record (peer absent or refusing) is W0.
+"""Reciprocal witnessing mesh: who cosigns whom, refusal as a logged signal, and
+coverage/percolation over the resulting graph.
 """
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -80,11 +70,7 @@ def session(a: MeshAgent, b: MeshAgent, transcript: bytes,
 def verify_record(rec: dict, pubkeys: dict) -> bool:
     """Check the signatures the record actually carries against public keys.
 
-    A W2 record must carry a valid signature from BOTH named peers over the
-    exact statement in the record. Verification is offline and adversarial: it
-    never asks an agent to sign anything now, so a fabricated record — or a
-    record re-presented against a different transcript — cannot pass just
-    because the named agents are still cooperative."""
+    A W2 record must carry a valid signature from BOTH named peers over the."""
     if rec.get("class") != "W2":
         return False
     peers = rec.get("peers") or []

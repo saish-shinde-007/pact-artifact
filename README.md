@@ -93,7 +93,7 @@ Run from `m0/`:
 | `./.venv/bin/python3 e8.py` | federation cost, composed inclusion proofs, equivocation |
 | `./.venv/bin/python3 e9.py` | reciprocal witnessing mesh coverage |
 | `./.venv/bin/python3 pactctl.py bench -n 3000` | append-path latency and the 4.6× optimization breakdown |
-| `./.venv/bin/python3 scan_corpus.py` | safety gate: asserts no live-format credentials in the corpus |
+| `./.venv/bin/python3 scan_corpus.py` | safety gate: vendor-grade secret patterns; FAILs on any live-format string it cannot account for, WARNs on the two documented allowlisted ones (`--self-test` proves it fires) |
 | `./.venv/bin/python3 run_jurors.py` | put the 70 items to any set of real models and record verdicts |
 | `./.venv/bin/python3 juror_prompt.py` | print the exact juror prompt, with its hash |
 | `./.venv/bin/python3 e15.py` | cross-vendor replication: is the correlation lineage or judgment? |
@@ -145,7 +145,8 @@ vendors** (OpenAI, Google, Meta, Mistral, Alibaba, DeepSeek, Anthropic, xAI, Ama
 judging the same 70 items under the same prompt, with 12 *within*-vendor pairs to compare
 against 159 *cross*-vendor pairs.
 
-The hedge does not survive. Cross-vendor pairs are as correlated as within-vendor pairs:
+The hedge does not survive, under either of two prompt framings (`PACT_PROMPT=jp:v2`
+reruns the panel under a minimal second framing; `m0/jury_verdicts_xvendor_v2.json`). Cross-vendor pairs are as correlated as within-vendor pairs:
 mean 3.2× cross vs 3.1× within, difference 95% CI [−0.3, 0.1], and all 171 pairs reject
 independence. Lineage is not what produces the agreement. The finding is therefore
 *stronger* than published, not weaker, and the "upper bound" sentence has to go.

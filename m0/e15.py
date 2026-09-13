@@ -1,29 +1,7 @@
 #!/usr/bin/env python3
-"""PACT — E15: is the correlation LINEAGE, or is it JUDGMENT?
-
-E13 measured jurors' errors as correlated at 4.7x independence, on three tiers of
-one vendor, and called that an UPPER bound on the strength of the claim: models
-from one vendor share tuning lineage, so perhaps they inherit their agreement
-rather than arrive at it. That reading is load-bearing — it is the sentence that
-keeps the paper's diversity constraint alive in weakened form — and with
-same-vendor data alone it cannot be checked. It is a confound, not a result.
-
-This experiment separates the two. Jurors from unrelated vendors judge the same 70
-items under the same prompt (`juror_prompt.py`, hashed into the verdict file), and
-pairs are split:
-
-    WITHIN-vendor pair  — two models from one vendor, shared lineage
-    CROSS-vendor pair   — two models from unrelated vendors, no shared lineage
-
-If correlation is lineage, CROSS pairs fall toward 1.0x while WITHIN pairs stay
-high. If correlation is judgment — the items themselves being hard in ways any
-competent model is pulled by — CROSS pairs stay high too, and the paper's
-"upper bound" framing is wrong and has to go.
-
-Either answer is publishable and the second one is worse for the design, which is
-the reason to run it.
-
-Run: ./.venv/bin/python3 e15.py [--verdicts jury_verdicts_xvendor.json]
+"""E15: is juror error correlation lineage or judgment? Within-vendor pairs vs cross-vendor
+pairs on the same items under one hashed prompt, with exact hypergeometric independence
+tests. --exclude-ids audit reruns on the label-audited corpus.
 """
 import argparse
 import json
@@ -42,9 +20,7 @@ SEED = "pact-e15-v1"
 def perm_p(n, ka, kb, joint):
     """EXACT p for H0: each juror's error COUNT is fixed and which items it misses
     is independent of the other juror. Under that null the joint-error count is
-    hypergeometric(N=n, K=ka, draws=kb), so the one-sided tail is closed-form and
-    needs no simulation. This is the same null ci.py samples by permutation, solved
-    rather than approximated — which also makes it tractable at 171 pairs."""
+    hypergeometric(N=n, K=ka, draws=kb), so the one-sided tail is closed-form and."""
     denom = comb(n, kb)
     tail = sum(comb(ka, x) * comb(n - ka, kb - x)
                for x in range(joint, min(ka, kb) + 1) if n - ka >= kb - x)
