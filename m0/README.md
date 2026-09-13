@@ -107,34 +107,27 @@ cap and true violations still convict 100% at every colluder count. Remove the c
 and the same 7 take 3.5/11 seats and conviction collapses to 30%. The cap, not the
 vote threshold, is what makes buying a verdict expensive.
 
-**E7 precedent graph (420 held-out actions, 27 distinct patterns).** Jury
-convocations fall **200 → 13** and human reviews **135 → 10**.
-
-| τ | juries | reduction | precedent-resolved | prec. errors | F1 |
-|---|---|---|---|---|---|
-| 0.35 | 10 | 20.0× | 182 | **26** | 0.721 |
-| 0.45–0.90 | 13 | 15.4× | 187 | 0 | 0.769 |
-| 0.95 | 44 | 4.5× | 156 | 0 | 0.750 |
-
-The binding ceiling is set by patterns that actually **reach** the funnel (13 of 27
-survive the screener), not by all distinct patterns — so the ceiling is 15.4× and
-the mechanism **meets it exactly**. The earlier "15.4× against a 15.7× ceiling,
-falls just short" framing divided by patterns no jury ever sees.
-
-Landmarks are now **searched**, not hand-picked: over all 420 actions the closest
-same-bucket pair is **0.993** and the closest opposite-label pair **0.423**. Too
-loose and benign text inherits a violation verdict; too tight and genuine repeats
-stop matching. **The threshold is a safety parameter, not a tuning knob.**
+**E7 precedent graph (174 held-out actions, 29 distinct patterns).** Under the
+authored labels (`--labels v1`), jury convocations fall **48 → 8** and human reviews
+**37 → 7**; 8 of 29 patterns survive the screener, so the ceiling is 6.0× and the
+mechanism meets it exactly. Thresholds ≤ 0.55 commit 6 wrong auto-verdicts, ≥ 0.65
+none. Under the adjudicated labels the funnel thins (30 → 5 juries, 5 surviving
+patterns) and precedent commits **no wrong auto-verdict at any threshold** — the
+near-identical cross-label pairs were the mislabelled items. Landmarks are searched,
+not hand-picked, and are label-set-independent: closest same-bucket pair **0.998**,
+closest opposite-label pair **0.916** (both PEM items, labels unchanged by the
+adjudication). The threshold is a safety parameter, not a tuning knob.
 
 Two honest limits:
 
 1. **The reduction ceiling is pattern count, not the mechanism.** Any 100–1000×
    claim is a claim about *traffic repetitiveness*, not about PACT.
 2. **Rung 0 is the dominant weakness — direction solid, magnitude not.** The trained
-   screener recalls 0.625 on unseen phrasings in the headline split, but across 8
-   equally valid template splits recall ranges **0.250–0.625** (median 0.500).
-   Whatever it misses is auto-cleared and never reaches adjudication, which is the
-   strongest argument in these results for risk-limiting audit sampling — it draws
+   screener recalls 0.500 on the headline split under either label set, but across 8
+   equally valid template splits recall ranges **0.167–0.500** authored and
+   **0.111–0.750** adjudicated — wider after correction, not tighter. Whatever it
+   misses is auto-cleared and never reaches adjudication, which is the strongest
+   argument in these results for risk-limiting audit sampling — it draws
    from all covered actions and is independent of screener error.
 
 **Attestation (P1).** Entries carry a runtime measurement checked against the
@@ -148,21 +141,20 @@ opus, as they behaved on 2026-09-12 — exact build versions were not pinned) we
 the same 70 labeled items under one policy clause, blind. Run `./.venv/bin/python3
 e13.py` to reproduce.
 
-- **Real models clear the rule-based stand-ins comfortably, and do not saturate.**
-  F1 0.512 / 0.862 / 0.900 against the best stand-in's 0.577, with 21, 8 and 6 errors
-  out of 70. Unlike the withdrawn corpus this one leaves real errors to correlate,
-  which is what makes the next finding possible at all.
-- **They do not fail independently.** Pairwise observed/expected joint-error ratios
-  of **2.5×, 2.8× and 8.8×** — mean **4.7×** — where independence would give 1.0×.
-  The highest ratio is between the two closest-lineage models.
-- **Five items defeat all three, and 100% of them are `contested`.** The models
-  converge on the easy calls and make the *same* error on the hard ones. That is the
-  worst failure shape a jury can have: agreement where agreement is cheap, correlated
+- **Juror ranking is a property of the label regime.** Under the authored labels
+  (`--labels v1`): F1 0.512 / 0.862 / 0.900, errors 21 / 8 / 6, mean joint-error
+  ratio **4.7×**. Under the adjudicated labels the two "strong" tiers carry ~10
+  false positives each for flagging announced-synthetic values (precision 0.577,
+  0.607) while the "weak" tier becomes best (P 1.000, F1 0.688); errors 10 / 17 / 15,
+  mean ratio **2.7×**. Above independence in every bootstrap replicate under both.
+- **The universal failures are 100% `contested` under both label sets** (5 of 70
+  authored, 4 of 70 adjudicated). The models converge on the easy calls and make the
+  *same* error on the hard ones — agreement where agreement is cheap, correlated
   error where the verdict matters.
-- **Scope.** Three tiers from ONE vendor, 70 items, one prompt framing. Same-vendor
-  models share tuning lineage, so 4.7× is plausibly an **upper bound** on what a
-  cross-vendor panel would show. A cross-vendor replication is the obvious next
-  experiment — see the top-level `README.md` for how to run this on your own models.
+- **Scope.** Three tiers from ONE vendor under an unrecorded framing (predates the
+  prompt-hash discipline; not strictly reproducible). The 19-juror, 9-vendor,
+  two-framing replication is the load-bearing panel now — see the top-level
+  `README.md` and the paper §VII-C.
 
 **Juror availability falls as severity rises.** In a companion run on the corpus since
 withdrawn, two of three models refused the adjudication task outright, reporting

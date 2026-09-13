@@ -173,14 +173,14 @@ def build(label_set="v2"):
     return out
 
 
-def split(train_frac=0.6, fold: int | None = None):
+def split(train_frac=0.6, fold: int | None = None, label_set="v2"):
     """Disjoint train/test item sets, stratified by bucket.
 
     `fold` rotates the order deterministically (hash-ordered, no RNG) so the same."""
     import hashlib
     from collections import defaultdict
     by = defaultdict(list)
-    for it in build():
+    for it in build(label_set):
         by[it["bucket"]].append(it)
     train, test = [], []
     for bucket, items in by.items():
@@ -207,7 +207,7 @@ def stream(items, repeats=6):
 
 if __name__ == "__main__":
     from collections import Counter
-    items = build()
+    items = build(label_set)
     print(f"{len(items)} items, {sum(i['label'] for i in items)} violations")
     for b, c in Counter(i["bucket"] for i in items).items():
         print(f"  {b:<20} {c}")

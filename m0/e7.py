@@ -2,7 +2,16 @@
 """E7: precedent-graph load reduction, screener recall across splits, and the
 threshold safety band.
 """
+import argparse
+
 import neutral_corpus as corpus
+
+_ap = argparse.ArgumentParser()
+_ap.add_argument("--labels", default="v2", choices=("v2", "v1"),
+                 help="v2 = adjudicated labels (default); v1 = as authored")
+ARGS, _ = _ap.parse_known_args()
+if ARGS.labels == "v1":
+    print("\nLABELS v1 (as authored, pre-adjudication)")
 from jury import adjudicate
 from precedent import PrecedentGraph
 from screener import Screener
@@ -68,7 +77,7 @@ def run(stream, scr, tau, use_precedent=True):
 
 
 if __name__ == "__main__":
-    train, test = corpus.split(0.6)
+    train, test = corpus.split(0.6, label_set=ARGS.labels)
     stream = corpus.stream(test, repeats=6)
     scr = Screener().fit(train)
 
@@ -87,7 +96,7 @@ if __name__ == "__main__":
     # the spread across equally valid splits instead of a single lucky draw.
     folds = []
     for fold in range(8):
-        tr, te = corpus.split(0.6, fold=fold)
+        tr, te = corpus.split(0.6, fold=fold, label_set=ARGS.labels)
         sc = Screener().fit(tr)
         folds.append(score([1 if sc.flag(i["text"]) else 0 for i in te], te))
     rec = sorted(x[1] for x in folds)

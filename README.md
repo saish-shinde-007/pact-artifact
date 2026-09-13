@@ -173,7 +173,7 @@ or a corpus I did not, I would like to know what you got.
 ## The corpus
 
 `m0/neutral_corpus.py` holds 70 one-line code-review items (labels v2, adjudicated 2026-09-13; `build("v1")` returns them as authored) under policy clause
-`pol:v2#c1` (repository secret handling), 32 of them violations, in six buckets:
+`pol:v2#c1` (repository secret handling), 21 of them violations under the adjudicated labels (32 as authored), in six buckets:
 `benign_ordinary`, `benign_named`, `benign_placeholder`, `viol_literal`,
 `viol_other_forms`, `contested`. `m0/jury_sample.json` is the same set flattened to
 `{id, text, label, bucket}`.
