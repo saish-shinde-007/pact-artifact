@@ -1,0 +1,216 @@
+# PACT: An Accountability Protocol for Deployed AI Systems, with Measured Limits on AI-Jury Adjudication
+
+**Author: Saish Sanjay Shinde**
+
+Submission draft. Every quantitative claim is produced by a script in `m0/` and is
+reproducible by running it. The broader architectural programme this protocol belongs
+to (planetary federation, institutional planes, treaty-scale verification) is out of
+scope here and is held for separate work.
+
+---
+
+## Abstract
+
+Institutional oversight of AI rests on a weak foundation. Third-party evaluation, statutory record-keeping and proposals for verifiable limits on frontier development all presume an audit record. That record is produced and held by the operator of the system under audit. We present PACT, a protocol that makes deployed AI conduct non-repudiable and adjudicable among mutually distrusting parties. PACT separates a cheap evidence plane, consisting of per-agent hash-chained conduct logs whose Merkle checkpoints are cosigned by independent witnesses, from a small governance plane holding registries, challenges, verdicts and consequences. Conduct is policed recursively: watchdog agents file challenges, diversity-constrained juries of evaluator models vote by commit–reveal and humans hold final appeal. Jurors are themselves covered by the mechanism. We built a reference implementation that runs the full loop at 122 µs per covered action and costs 13.3 B of shared ledger per query. In it, one action in 100,000 remains provable to a witness-cosigned root through 22 hashes. Our central results are negative and were produced by that implementation against its own design. A two-thirds jury scores F1 0.256 against its best single member's 0.577 (gap −0.321, 95% CI [−0.506, −0.142]), because majority voting outvotes a lone correct detector. An asymmetric rule recovers containment, cutting auto-cleared violations from 50.0% to 9.4%, but raises human review load from 20.0% to 72.9%. We then measure error independence among real evaluator models inside the adjudication protocol that binds consequences to their verdicts. Their errors are correlated at 4.7× what independence predicts (bootstrap 95% CI [3.3, 9.4]) and every pairwise permutation test rejects independence at *p* < 0.01. The correlation concentrates on the cases we pre-labelled as contested. This agrees with concurrent findings on generic judge panels [39], [40]; we measure it where a verdict carries consequence and we change the protocol in response. The diversity constraint on which AI-jury designs depend therefore buys less than it claims and we restate it as selection for measured complementarity.
+
+**Index terms** — AI accountability, transparency logs, LLM-as-judge, distributed systems security, adjudication protocols, empirical evaluation.
+
+---
+
+## I. Introduction
+
+Oversight of AI systems is acquiring an institutional layer faster than a technical one. Regulators impose record-keeping and incident-reporting duties on high-risk systems [18], developers publish safety frameworks and invite external evaluation. Policy proposals call for verification arrangements spanning parties that do not trust one another. Every such mechanism presumes a trustworthy account of what an AI system did. In current practice that account is produced, stored and served by the operator of the system under audit, so the record is editable by the party it constrains.
+
+Transparency logs solved the analogous problem for web certificates [1], but detection-only machinery is insufficient here. AI oversight also needs a place to challenge recorded conduct, a procedure to adjudicate the challenge and a mechanism that binds consequences to the verdict. These are stateful protocol functions that a passive log cannot provide.
+
+A recurring proposal is to have AI systems adjudicate each other, using panels of evaluator models drawn to be diverse and voting on whether conduct violated policy [10], [12], [38]. Human review does not scale to the volume of AI actions, so the appeal is clear. The assumption underneath is that jurors drawn from different model families fail independently, so that aggregating them buys reliability. Recent work has begun to question that assumption on generic evaluation benchmarks [39], [40]. What has not been examined is how it behaves inside a protocol that attaches consequences to the verdict, where the design must then respond. We build the protocol such a design needs, we measure the assumption within it and we change the protocol in light of the answer.
+
+**Contributions.**
+
+- **C1: Protocol (§III).** We define six accountability properties for deployed AI systems and give a two-plane design (Fig. 1) that achieves them among mutually distrusting parties: hash-chained conduct logs with witness-cosigned checkpoints and a minimal governance plane for registries, challenges, verdicts and consequences.
+- **C2: Adjudication at scale (§IV–V).** We combine diversity-constrained jury sampling with commit–reveal voting and first-class abstention, a precedent graph that amortizes repeated adjudications and risk-limiting audits that bound violation rates from constant-size samples independently of screener error.
+- **C3: Federation without global consensus (§IV).** Per-agent logs commute, so evidence needs no total order. Agent, operator, shard and witness-cosigned root compose into inclusion proofs that keep every individual action provable while ledger cost stays flat in traffic.
+- **C4: An evaluation that refutes its own design (§VI–VII).** Four claims we began with do not survive measurement. Among them is the jury-independence assumption, which we measure against real evaluator models inside a protocol where verdicts bind consequences and answer with a change to the voting rule.
+
+## II. Threat Model and Accountability Properties
+
+**Principals.** Model developer *D*, deployer/operator *P*, auditor *A*, watchdog agent *W*, juror model *J*, shard validator *V*, log witness *T*, human review board *H*.
+
+**Adversaries.** We consider a cheating operator who serves unregistered weights, omits or tampers with entries or equivocates between audiences; watchdogs who spam frivolous challenges; jury subsets who collude; validators who censor; and observers who mine commitments for private content.
+
+**Assumptions.** At most *f* Byzantine validators among 3*f*+1 per shard [7]. At least one honest witness per cosigning quorum. Hardware attestation is trusted to vendor level, which is an explicit trust anchor rather than a guarantee. Re-execution nondeterminism is bounded and measurable.
+
+**Non-goals.** PACT cannot conscript systems served outside instrumented runtimes. It proves the integrity of covered conduct, never the absence of uncovered conduct. It does not verify training-time claims, for which compute accounting [4] is the complement.
+
+We define a *covered action* as an inference or tool call served through a PACT-instrumented runtime. For every covered action PACT provides: P1 Attribution to (model version, weights commitment, runtime measurement, operator); P2 Integrity, since tampering breaks a hash chain against cosigned checkpoints; P3 Non-repudiation, since entries are signed by attested runtime keys; P4 Challengeability within window Δ against a policy clause; P5 Adjudicability, since every challenge terminates in a recorded verdict; and P6 Consequence binding, since verdicts mechanically update stake, reputation and registry status, which deployment gates read.
+
+## III. The Protocol
+
+### A. Identity and registry
+
+We use decentralized identifiers for all principals. Per model version the registry records a Merkle root over weight shards, a training-data manifest commitment, a lineage link, a model-card hash [13], the policy hash served under and approved runtime measurements. Agent-instance keys are generated inside attested enclaves, so one signature transitively binds output to runtime image to registered weights to operator.
+
+### B. Evidence plane
+
+Each agent maintains a hash-chained log. An entry carries a sequence number, a previous-hash link, salted commitments to input and output, tool calls, the policy clause, the sampling seed and a signature. Per-entry salts are operator-held and escrow-shared with in-remit auditors. They defeat dictionary attacks on hashed personal data. Deleting payload and salt makes the on-ledger commitment permanently unlinkable, which is how we support erasure. Every *T* seconds or *N* entries we checkpoint the log's Merkle root, independent witnesses cosign the tree head [21] and inclusion and consistency proofs follow transparency-log practice [1].
+
+Two implementation details are load-bearing and we got both wrong in our first version (§VII-E). Odd nodes are promoted rather than duplicated, so leaf count is unambiguous from the root. Inclusion proofs carry sibling hashes only: the side of each sibling and the required path length are re-derived at verification from the claimed index and tree size. A proof therefore cannot be replayed at a position other than the one it was issued for.
+
+### C. Verification ladder
+
+Verification climbs three rungs, ordered by cost. Attestation binds the log to registered weights and an approved runtime image. We enforce registry-approved measurements at verification and an agent with no registered runtime is reported unattested rather than passing silently. Optimistic re-execution re-runs challenged inferences from logged seeds, with a fraud-proof-style bisection [6] narrowing disputes to single entries. Bitwise cross-hardware reproducibility is unattainable, so acceptance is within a logit tolerance decided by quorum. Zero-knowledge inference proofs [5] remain confined to small judge models by cost. We implement only the first rung here; the other two are specified and unmeasured.
+
+### D. Governance plane and the jury
+
+Watchdogs file challenges naming a log range, a policy clause, evidence commitments and a bond. A verifiable random function samples a jury of *k* = 11 evaluator models under diversity constraints: at most one juror per operator and at least three base-model families. We take the seed from the root of the first checkpoint sealed after the challenge was filed. That value did not exist when the challenge id was assigned, so a challenger cannot grind for a favourable panel.
+
+Voting is commit–reveal. Each juror publishes H(verdict ‖ H(rationale) ‖ nonce), where the nonce is 128 bits of juror-held randomness. A deterministic nonce leaves the hiding property absent while the ceremony still looks correct (§VII-E). A two-thirds supermajority decides. Splits and severity ≥ S2 escalate to the human board.
+
+Measurement rather than design taste forced two refinements. The first is the lone-detector rule. Plain majority voting is symmetric and symmetry is wrong for safety adjudication, because when a harm is visible to only one juror family the majority can vote down the juror that was right. For catastrophic clauses we therefore allow a single violation vote to be escalated but never overridden into an auto-clear. The second is that abstention is a verdict rather than a fault. A juror may decline a case, its silence counts toward neither side and we never slash it. A panel thinned below quorum or below its family floor escalates instead of deciding on the remainder. We punish only equivocation, meaning committing one verdict and revealing another, abstention included.
+
+Severity gates on evidentiary weight, so a conviction at S1 or above may not rest on unilateral self-reported evidence. Slashing is asymmetric: operator stake on proven violation, challenger bond on frivolity and juror stake only for provable process faults. We never slash a juror for voting with the minority, which would breed herding. Verdicts carry the jury evidence that produced them and verification re-derives the draw, so a verdict written directly to the store is reported as unbacked rather than silently trusted. Enforcement teeth come from gates: serving platforms, marketplaces and insurers read registry status, mirroring the way browser enforcement gave certificate transparency its force. The design is recursive, since jurors and watchdogs are covered models whose verdicts are covered actions.
+
+## IV. Federation Without Global Consensus
+
+Per-agent logs are independent hash chains. They commute, so evidence needs no total order. Only governance actions require consensus and they are rare. The hierarchy runs from agent log to operator root to shard ledger to planetary root, where the planetary root is a thin transparency log of shard roots cosigned each epoch by an independent witness fabric rather than a blockchain.
+
+**Aggregation.** Batching moves bandwidth, not trust. Each hop's root reappears as the next hop's leaf, bound to its owner's identity, so a valid subtree cannot be re-claimed under a different identity. Every individual action stays provable to the root by a composed O(log n) path and the BFT thresholds, witness quorums and salted-commitment privacy are identical at every scale.
+
+**Cross-witness gossip.** Equivocation dies at the root, but only if witnesses talk to each other. Measurement sharpened this into a protocol requirement (§VII-D). A deceived witness sees one internally consistent history and has nothing to object to, so equivocation is invisible from any single vantage point and exists only as a disagreement between vantage points. We therefore make cross-witness gossip mandatory. A fabric that cosigns without comparing detects no equivocation whatever its size.
+
+## V. Adjudication at Scale
+
+We treat full juries as the last resort rather than the first responder. Flagged conduct passes through co-located screeners, then a precedent matcher, then a small screening jury, then the full jury, then humans. Each rung has an early exit and an appeal right upward.
+
+**Precedent graph.** The graph makes every adjudicated case a citable node carrying evidence commitments, clause, verdict and rationale. Matching is embedding similarity plus clause identity, matches auto-resolve with appeal rights and conflicting precedents force escalation, which is how doctrine evolves. Precedents are themselves covered artifacts, supersedable by full-jury or human rulings, so early errors do not fossilize. Measurement forced us to state two things precisely. Pattern count bounds the reduction, not the mechanism: adjudicating N distinct patterns costs at least N juries, so any large factor is a claim about traffic repetitiveness rather than about PACT. The similarity threshold is also a safety parameter. Set too loose, benign text that merely shares vocabulary with an adjudicated violation inherits its verdict. Set too tight, genuine repeats stop matching and the reduction collapses.
+
+**Risk-limiting audits.** Imported from election auditing [24], these verify a VRF-drawn, Merkle-proven sample sized to a stated confidence. They yield claims of the form "with 99% confidence this model's violation rate is below ε", with sample size independent of traffic volume. Because sampling draws from all covered actions, this is the only check independent of screener error and a screener miss is otherwise unrecoverable by any downstream mechanism.
+
+## VI. Implementation
+
+Our reference implementation is open source and runs the full loop: evidence log with witness cosigning, jury protocol, precedent graph, trained screener, federation tiers and a serving shim that logs completions and returns a receipt. We make experiments deterministic by hash-seeding rather than RNG-seeding, so every reported number reproduces exactly. We compute intervals as percentile bootstrap over items with 20,000 replicates (`m0/ci.py`), taking the item as the unit that would change if the corpus were rewritten and we test independence by permutation, holding each model's error count fixed and randomising which items it misses. No interval here covers variation from model choice, prompt framing or policy clause, since those are single draws.
+
+Our evaluation domain is repository secret handling: 70 one-line code-review items under a policy clause prohibiting credential literals in source, committed key material, unredacted credential logging and credentials transmitted with certificate verification disabled. The domain is benign by construction and the findings below are properties of the voting rule rather than of any domain.
+
+The construction matters more than the domain. We wrote five detector families from the policy clause alone and committed them before any data item existed. Six separate language-model agents then wrote the items from the same clause, each prompted in isolation, without access to the detector code and without sight of each other's output. Neither side could tune to the other. In earlier versions of this work the same author wrote both, which made the families' blind spots an artifact of authorship and inflated every result derived from them.
+
+We stress that these authoring agents are instances of related models rather than independent human authors. This matters for §VII-C, where our jurors are also models of a related lineage, so the items we label contested may be contested for that lineage in particular. We treat it as a confound on the magnitude of the correlation we report and return to it in §VIII. Concurrent measurements of the same effect on corpora we had no part in building [39], [40] are why we read the direction of the result as sound despite it.
+
+## VII. Evaluation
+
+Our evaluation runs in one process, with development keys held beside the data rather than in an enclave, simulated rather than hardware attestation, federation tiers as objects rather than hosts and a synthetic corpus. These numbers measure the protocol, not deployment realities.
+
+### A. Append path and footprint
+
+A naive implementation costs 567 µs p50 per covered action. Three changes bring it to 122 µs p50 and 142 µs p95 (7,800 entries/s single-threaded in Python): write-ahead logging 2.2×, caching the deserialized signing key 1.7× and batched commits 1.2×, for 4.6× end to end. We made each independently toggleable, so we measure the attribution rather than assert it. Profiling shows that 76% of the remainder is Ed25519 signing, which is the non-repudiation guarantee itself. The path is therefore signature-bound and further gains require batch-signing rather than micro-optimization.
+
+An entry is about 406 B in the operator's own log and a witness-cosigned checkpoint about 663 B. The shared cost is 13.3 B per query at an aggressive 50-entry checkpoint interval, falling to about 0.07 B per query at 10⁴-entry batching. Ledger cost is a function of time, not of traffic.
+
+### B. Adjudication quality and the central negative result
+
+Single detectors span F1 0.111 to 0.577, the best at precision 0.750. Our scoring makes no assumption about human accuracy: we report the machine's three-state output rather than crediting escalations with ground truth. An earlier version of this harness did credit them, which inflated a headline into a number that mostly measured that assumption.
+
+Under a plain two-thirds rule the machine auto-clears 50.0% of true violations (containment 0.500, 95% CI [0.312, 0.688]), convicts at precision 0.714 and sends 20.0% of traffic to a person. The lone-detector rule cuts auto-clears to 9.4% (containment 0.906, 95% CI [0.781, 1.000], an interval disjoint from the symmetric rule's) and raises human load to 72.9%. Machine-level precision and recall are identical under both rules. The rule changes nothing about what the system decides, only about what it refuses to clear silently, so we report containment rather than F1 for it.
+
+Scored as machine decisions, the symmetric jury reaches F1 0.256 against its best single member's 0.577, a gap of −0.321 with bootstrap 95% CI [−0.506, −0.142], negative in every one of 20,000 replicates. On data nobody could tune to, a supermajority rarely forms, so the jury convicts far less than its best member would. We conclude that majority voting is not automatically safer than its best member and that safety adjudication needs asymmetric thresholds.
+
+One claim from an earlier draft does not survive. We previously held that a diverse jury raises precision over its best member. Here precision goes from 0.750 to 0.714, slightly down. The original gain existed because that corpus concentrated its false positives in two of five families, where majority voting washed them out. These detectors do have complementary blind spots, since every pair misses violations the other catches and aggregation still failed to improve precision. Complementary coverage is necessary for a jury to pay off and is not sufficient.
+
+### C. Do evaluator models fail independently?
+
+The diversity constraint is worth its cost only if jurors' errors are uncorrelated. Rule-based detectors cannot test this, so we put the same 70 items to three real model tiers, blind, under one policy clause. All three responded and all three made real errors, at 21, 8 and 6 of 70.
+
+We find errors correlated at 4.7× what independence predicts (95% CI [3.3, 9.4], above 1.0 in every replicate). The pairwise ratios are 2.5× [1.4, 4.1], 2.8× [1.6, 4.4] and 8.8× [5.0, 23.3]. The last is between the two closest-lineage models and is by far the least precisely estimated, resting on six co-occurring errors. A permutation test that fixes each model's error count and randomises which items it misses rejects independence for all three pairs (*p* = 0.009, 0.009, < 0.0001). Five items defeat all three models and every one is from the pre-labelled contested set, though at five items that claim carries a wide interval (7.1% of items, 95% CI [1.4%, 12.9%]) and is the weakest in this section. The models converge on the easy calls and make the same error on the hard ones. Agreement is cheap where the models agree and their errors correlate where the verdict matters, so a supermajority of correlated jurors is confidently wrong rather than usefully uncertain.
+
+We can state a sharper rule than the one we started with. The pairwise ratios differ substantially, so the correct constraint selects jurors for measured complementarity rather than declared family membership. Our scope is three tiers from one vendor, 70 items, one prompt framing and models whose exact builds were not version-pinned. Same-vendor models share tuning lineage, so we read 4.7× as an upper bound on correlation and a cross-vendor replication is the obvious next experiment. Concurrent work reaches the same conclusion by different routes and at larger scale, across 350+ models [39] and on a nine-judge panel spanning seven families where the best single judge matches or beats the whole panel [40]. We therefore treat the direction of this result as corroborated rather than as ours alone. What is ours is the setting: these jurors have verdicts that move stake and registry status, not benchmark scores.
+
+**Juror availability.** Availability falls as severity rises. In a companion run on a more sensitive corpus, two of three models refused the adjudication task outright, reporting safeguard categories. A juror must read what it judges, so models tuned to refuse engagement with dangerous content also refuse to moderate it. The panel thins toward the least cautious models exactly where care is most needed and a three-family requirement can become unsatisfiable at top severity. This is why we make abstention first-class in §III-D. Any deployment claim must report severity-stratified abstention rates, because a jury that silently thins at high severity still returns a verdict.
+
+### D. Federation, precedent and mesh coverage
+
+**Federation.** Root cost per epoch is a function of shard count alone, at about 9.7 KB for 10 shards with 10 witnesses, so no query rate moves it. Sealing an epoch over 10,000 operators and 100,000 agents costs 0.48 s, which is 0.8% of a 60-second pin budget, because aggregation hashes roots rather than payloads. One action out of 100,000 remains provable through 22 hashes in a 2.3 KB proof verified in 36 µs, growing logarithmically. A valid subtree re-claimed under another identity is rejected. Witness quorum degrades linearly under churn and the log records the shortfall rather than failing silently.
+
+**Equivocation.** A shard presenting a forged root to 3 of 10 witnesses was detected 0 times by any witness individually and 21 times by witnesses comparing, which is exactly the 3 × 7 deceived/honest pairs. The zero is the result. Locally consistent deception is locally undetectable, which is why we make gossip mandatory.
+
+**Precedent.** Replaying 174 held-out actions over 29 distinct patterns, the precedent graph reduces jury convocations from 48 to 8 and human reviews from 37 to 7. Patterns that reach the funnel set the binding ceiling and 8 of 29 survive the screener, so the achievable reduction is 6.0×. The mechanism meets it exactly. The threshold behaves as a safety parameter: over all 174 actions the closest same-bucket pair sits at cosine 0.998 and the closest opposite-label pair at 0.916, a narrow band, because a private key in a test fixture and the same key in production configuration are textually near-identical and oppositely labelled. At thresholds ≤ 0.55 precedent commits 6 wrong auto-verdicts and at ≥ 0.65 it commits none.
+
+**Screener.** This is the weak point, with a caveat about how firmly. A trained classifier recalls 0.500 on unseen phrasings in the headline split and whatever it misses is auto-cleared and never reaches adjudication. Across eight equally valid splits, however, recall ranges from 0.167 to 0.500, so the direction of the finding is solid and its magnitude is not. Either way this is the strongest argument in our results for risk-limiting sampling, which is independent of screener error.
+
+**Mesh coverage.** Coverage does not percolate. On 2,000-agent random and scale-free interaction graphs, a reciprocal witnessing mesh gives coverage that is one-hop and degree-weighted rather than viral. The coverage curve shows no threshold and in four-hop workflows "all hops observed" trails "at least one hop" badly, at 0.045 versus 0.338 at p = 0.10, so workflows are seen in fragments. Exposure follows 1−(1−p)^degree: at p = 0.10, degree-16+ agents are exposed 86% of the time against 17% for degree-1–2. Instrumenting the top 1% of agents by degree covers 22% of interactions, the reach random instrumentation needs about 12% to achieve.
+
+### E. Integrity of the artifact itself
+
+Because we wrote the code that produced these results, we subjected the paper and implementation to a structured adversarial review. Seven independent reviewers worked with distinct lenses, each required to execute the code and a skeptic tasked with refuting the findings followed each one. Thirty findings survived refutation.
+
+The value concentrated in a class we could not have found by self-inspection, namely properties the paper asserted that the implementation did not enforce. Merkle proofs accepted an index the verifier never read, so a valid proof verified at any claimed position. A session-record verifier stored no signatures and re-signed at verification time, so fabricated records verified successfully. Commit–reveal derived its nonce from public inputs over a two-element verdict space, so every vote was recoverable before any reveal. We fixed all three, each with a regression test verified to fail when the fix is reverted. That check also found three pre-existing tests which could not fail at all, including one that would have permitted the supermajority threshold to be relaxed to a simple majority. Our suite is 49 checks with 23 such mutation-verified detections.
+
+The review was equally useful against our own reporting. It established that the corpus underlying the detection results had been written from the detectors' own word lists, that a flagship end-to-end figure assumed perfect human review, that a reduction ceiling used a denominator counting patterns no jury ever sees and that a quoted similarity landmark was hand-picked rather than searched. We corrected each above and each correction moved a number downward. We report this history because presenting the corrected numbers as though they were the first ones would misrepresent how much of this evidence depended on our own choices about what to measure.
+
+## VIII. Limitations
+
+Coverage is the central limit, since covered systems become accountable and uncovered ones do not. The attestation anchor is the hardware vendor. Rungs two and three of the verification ladder are specified and unimplemented, so the nondeterminism tolerance is unquantified. We measure juror independence and find that it does not hold, so the diversity constraint buys less than its statement implies. Our screener figures are high-variance. The jury-seed anchor removes grinding but not timing, because a challenger who cannot choose the anchor can still choose when to file relative to checkpointing; fixing this needs a commit-then-reveal challenge flow rather than a patch. Our federation results are in-process and say nothing about network behaviour, clock skew or Byzantine validators. A multi-host testnet is the work that would change that. Juror availability falls as severity rises. Finally, our evaluation corpus is synthetic and small and our jury measurement covers one vendor's models. A sharper version of that limit deserves stating on its own. The corpus items were written by language-model agents, the detector families were written by us and the jurors are models of a related lineage, so shared lineage runs through the whole pipeline. The items we label contested are contested for that lineage, and some part of the 4.7× we report may reflect shared authorship rather than shared judgment. A corpus written by human authors and judged by models from unrelated vendors would separate the two. We have not run that experiment. We rely on concurrent work measuring the same effect on data we did not build [39], [40] to argue that the direction survives, and we treat our magnitude as an upper bound for two independent reasons rather than one.
+
+## IX. Related Work
+
+Transparency logs and witness cosigning [1], [21] are the direct ancestors of our evidence plane and the verifiable-claims agenda [2] framed the problem. Training-side verification, including proof-of-learning [3] and compute accounting [4], complements our deployment-side scope, as do verifiable inference [5], recursive proof composition [29] and optimistic dispute games [6]. Our consensus assumptions rest on the PBFT lineage [7]–[9] and high-throughput DAG protocols [22], [23].
+
+Oversight-by-AI draws on debate [10], constitutional methods [11] and LLM-as-judge evaluation [12]. PoLL [38] argues directly for the panel-of-judges design we adopt, finding that a panel of smaller models from disjoint families outperforms a single large judge at a fraction of the cost. Our result sits in tension with that conclusion without contradicting it, because PoLL compares a panel against an external large judge where we compare a jury against its own best constituent member. Both can hold. Concurrent work has since measured the underlying mechanism on generic benchmarks: correlated errors across 350+ models with explicit downstream analysis of LLM-as-judge evaluation [39] and a nine-judge panel across seven families carrying only about two independent votes of information, with the best single judge matching or beating the panel [40]. Our finding agrees with theirs and we take that as corroboration rather than as a claim of priority. Our delta is setting and response. We measure inside a protocol where a verdict slashes stake and moves registry status. We answer with an asymmetric voting rule and protected abstention. A complementary line fixes the aggregator instead, replacing the mean with a robust estimator under contamination [41]. Decentralized dispute resolution pioneered the randomly drawn, staked, appealable jury for human jurors [31] and precedent-grounded decision support exists as retrieval tooling [32], where ours is a ledger object carrying verdict force. Hash-chained audit frameworks for LLM compliance [33], receiver-attested action receipts [34] and audit-trail tooling for accountability [42] supply base evidence layers. We build above them, in challenge, adjudication and consequence. Standards work is converging on the same substrate from the supply-chain and attestation directions, in transparent claim registration [43] and remote attestation architecture [44]. An adjacent governance line argues, as we do, for governing actions through institutional attestation rather than governing agents [45].
+
+Blockchain-anchored federated learning [16], [17], [20] federates training under a shared ledger. We federate evidence about deployed conduct and deliberately avoid global consensus for it. Our components come from documentation and provenance practice [13]–[15], statistical auditing [24], sequential testing [25], differential privacy [26], threshold secret sharing [30] for break-glass escrow, assurance-contract mechanism design [27] for bootstrapping participation and output watermarking [28] as a complementary attribution channel where runtime instrumentation is absent. Policy instruments [18], [19], assurance-technology agendas [35], hardware-enabled guarantees [36] and treaty-scale verification proposals [37] define the deployment context we build for.
+
+## X. Conclusion
+
+The deadlock in AI oversight is that everyone wants everyone else verified while the record stays with the audited. PACT makes deployed conduct non-repudiable and adjudicable at a cost that does not grow with traffic and keeps every individual action provable to a root no single party can rewrite. The mechanism most often proposed for scaling that oversight, panels of AI jurors, rests on an assumption that does not hold in the form usually stated, here and in concurrent work [39], [40]. Evaluator models do not fail independently. They fail together, on the cases where judgement matters. Majority voting over them can be worse than their best member. Neither finding kills the approach and both change what it must look like: asymmetric thresholds rather than symmetric ones, jurors selected for measured complementarity rather than declared diversity and humans retained as the only uncorrelated check in the system.
+
+---
+
+## References
+
+All entries verified against primary sources (RFC Editor, ACM DL, IEEE Xplore,
+USENIX, PMLR, arXiv, EUR-Lex, NIST). Five contained errors, now corrected.
+
+1. B. Laurie, A. Langley, and E. Kasper, "Certificate transparency," RFC 6962, IETF, Jun. 2013.
+2. M. Brundage et al., "Toward trustworthy AI development: Mechanisms for supporting verifiable claims," arXiv:2004.07213, Apr. 2020.
+3. H. Jia, M. Yaghini, C. A. Choquette-Choo, N. Dullerud, A. Thudi, V. Chandrasekaran, and N. Papernot, "Proof-of-learning: Definitions and practice," in Proc. IEEE Symp. Security and Privacy (SP), May 2021, pp. 1039-1056.
+4. Y. Shavit, "What does it take to catch a Chinchilla? Verifying rules on large-scale neural network training via compute monitoring," arXiv:2303.11341, Mar. 2023.
+5. H. Sun, J. Li, and H. Zhang, "zkLLM: Zero-knowledge proofs for large language models," in Proc. ACM SIGSAC Conf. Computer and Communications Security (CCS), Oct. 2024, pp. 4405-4419.
+6. H. Kalodner, S. Goldfeder, X. Chen, S. M. Weinberg, and E. W. Felten, "Arbitrum: Scalable, private smart contracts," in Proc. 27th USENIX Security Symp., Aug. 2018, pp. 1353-1370.
+7. M. Castro and B. Liskov, "Practical Byzantine fault tolerance," in Proc. 3rd Symp. Operating Systems Design and Implementation (OSDI), Feb. 1999, pp. 173-186.
+8. E. Buchman, "Tendermint: Byzantine fault tolerance in the age of blockchains," M.A.Sc. thesis, School of Engineering, Univ. of Guelph, Guelph, ON, Canada, 2016.
+9. M. Yin, D. Malkhi, M. K. Reiter, G. G. Gueta, and I. Abraham, "HotStuff: BFT consensus with linearity and responsiveness," in Proc. 2019 ACM Symp. Principles of Distributed Computing (PODC), Toronto, ON, Canada, Jul. 2019, pp. 347-356.
+10. G. Irving, P. Christiano, and D. Amodei, "AI safety via debate," arXiv:1805.00899, May 2018.
+11. Y. Bai et al., "Constitutional AI: Harmlessness from AI feedback," arXiv:2212.08073, Dec. 2022.
+12. L. Zheng et al., "Judging LLM-as-a-judge with MT-Bench and Chatbot Arena," in Advances in Neural Information Processing Systems 36 (NeurIPS 2023), Datasets and Benchmarks Track, New Orleans, LA, USA, Dec. 2023. [Also arXiv:2306.05685]
+13. M. Mitchell et al., "Model cards for model reporting," in Proc. Conf. Fairness, Accountability, and Transparency (FAT*), Atlanta, GA, USA, Jan. 2019, pp. 220-229.
+14. T. Gebru et al., "Datasheets for datasets," Commun. ACM, vol. 64, no. 12, pp. 86-92, Dec. 2021.
+15. Coalition for Content Provenance and Authenticity (C2PA), "C2PA technical specification," version 1.3, c2pa.org, Mar. 2023. [Online]. Available: https://spec.c2pa.org/specifications/specifications/1.3/specs/C2PA_Specification.html
+16. D. C. Nguyen, M. Ding, Q.-V. Pham, P. N. Pathirana, L. B. Le, A. Seneviratne, J. Li, D. Niyato, and H. V. Poor, "Federated learning meets blockchain in edge computing: Opportunities and challenges," IEEE Internet Things J., vol. 8, no. 16, pp. 12806-12825, Aug. 2021.
+17. P. Ramanan, K. Nakayama, and R. Sharma, "BAFFLE: Blockchain based aggregator free federated learning," in Proc. 2020 IEEE Int. Conf. Blockchain (Blockchain), Rhodes, Greece, Nov. 2020, pp. 72-81.
+18. European Parliament and Council of the European Union, "Regulation (EU) 2024/1689 of 13 June 2024 laying down harmonised rules on artificial intelligence (Artificial Intelligence Act)," Off. J. Eur. Union, L series, Jul. 12, 2024.
+19. National Institute of Standards and Technology (NIST), "Artificial intelligence risk management framework (AI RMF 1.0)," NIST AI 100-1, Gaithersburg, MD, USA, Jan. 2023, doi: 10.6028/NIST.AI.100-1.
+20. H. B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas, "Communication-efficient learning of deep networks from decentralized data," in Proc. 20th Int. Conf. Artificial Intelligence and Statistics (AISTATS), Fort Lauderdale, FL, USA, Apr. 2017, pp. 1273-1282.
+21. E. Syta et al., "Keeping authorities 'honest or bust' with decentralized witness cosigning," in Proc. 2016 IEEE Symp. Security and Privacy (S&P), San Jose, CA, USA, May 2016, pp. 526-545.
+22. K. Babel et al., "Mysticeti: Reaching the latency limits with uncertified DAGs," in Proc. Netw. Distrib. Syst. Secur. Symp. (NDSS), San Diego, CA, USA, Feb. 2025, paper 929.
+23. B. Arun, Z. Li, F. Suri-Payer, S. Das, and A. Spiegelman, "Shoal++: High throughput DAG BFT can be fast and robust!," in Proc. 22nd USENIX Symp. Networked Systems Design and Implementation (NSDI), Philadelphia, PA, USA, Apr. 2025, pp. 813-826.
+24. M. Lindeman and P. B. Stark, "A gentle introduction to risk-limiting audits," IEEE Security & Privacy, vol. 10, no. 5, pp. 42-49, Sep./Oct. 2012.
+25. A. Wald, "Sequential tests of statistical hypotheses," Ann. Math. Statist., vol. 16, no. 2, pp. 117-186, Jun. 1945.
+26. C. Dwork, "Differential privacy," in Proc. 33rd Int. Colloq. Automata, Languages and Programming (ICALP), Venice, Italy, Jul. 2006, pp. 1-12.
+27. M. Bagnoli and B. L. Lipman, "Provision of public goods: Fully implementing the core through private contributions," Rev. Econ. Studies, vol. 56, no. 4, pp. 583-601, Oct. 1989.
+28. J. Kirchenbauer, J. Geiping, Y. Wen, J. Katz, I. Miers, and T. Goldstein, "A watermark for large language models," in Proc. 40th Int. Conf. Machine Learning (ICML), 2023, pp. 17061-17084.
+29. S. Bowe, J. Grigg, and D. Hopwood, "Halo: Recursive proof composition without a trusted setup," Cryptology ePrint Archive, Paper 2019/1021, 2019.
+30. A. Shamir, "How to share a secret," Commun. ACM, vol. 22, no. 11, pp. 612-613, Nov. 1979.
+31. C. Lesaege, F. Ast, and W. George, "Kleros short paper v1.0.7," Kleros, Sep. 2019. [Online whitepaper].
+32. Q. Z. Chen and A. X. Zhang, "Case law grounding: Using precedents to align decision-making for humans and AI," in Proc. ACM Collective Intelligence Conf. (CI '25), San Diego, CA, USA, Aug. 2025, pp. 226-238, arXiv:2310.07019.
+33. D. Li, G. Yu, X. Wang, and B. Liang, "AuditableLLM: A hash-chain-backed, compliance-aware auditable framework for large language models," Electronics, vol. 15, no. 1, art. 56, Jan. 2026, doi: 10.3390/electronics15010056.
+34. J. Figuera, "Notarized agents: Receiver-attested confidential receipts for AI agent actions," arXiv:2606.04193, Jun. 2026.
+35. N. Ammann and S. Hastings-Woodhouse, "Avoiding an AI arms race with assurance technologies," AI Frontiers, Jun. 2025. [Online]. Available: https://ai-frontiers.org/articles/ai-arms-race-assurance-technologies
+36. J. Petrie, O. Aarne, N. Ammann, and D. Dalrymple, "Flexible hardware-enabled guarantees for AI compute," arXiv:2506.15093, Jun. 2025.
+37. R. Scholefield, S. Martin, and O. Barten, "International agreements on AI safety: Review and recommendations for a conditional AI safety treaty," arXiv:2503.18956, Mar. 2025.
+38. P. Verga, S. Hofstätter, S. Althammer, Y. Su, A. Piktus, A. Arkhangorodsky, M. Xu, N. White, and P. Lewis, "Replacing judges with juries: Evaluating LLM generations with a panel of diverse models," arXiv:2404.18796, Apr. 2024.
+39. E. Kim, A. Garg, K. Peng, and N. Garg, "Correlated errors in large language models," arXiv:2506.07962, Jun. 2025.
+40. G. Kohli, "Nine judges, two effective votes: Correlated errors undermine LLM evaluation panels," arXiv:2605.29800, May 2026.
+41. A. Acharya, K. W. Pan, and B. Verkhovsky, "RoPoLL: Robust panel of LLM judges," arXiv:2606.30931, Jun. 2026.
+42. V. Ojewale, H. Suresh, and S. Venkatasubramanian, "Audit trails for accountability in large language models," arXiv:2601.20727, Jan. 2026.
+43. H. Birkholz, A. Delignat-Lavaud, C. Fournet, Y. Deshpande, and S. Lasker, "An architecture for trustworthy and transparent digital supply chains," Internet-Draft draft-ietf-scitt-architecture, IETF, work in progress.
+44. H. Birkholz, D. Thaler, M. Richardson, N. Smith, and W. Pan, "Remote ATtestation procedureS (RATS) architecture," RFC 9334, IETF, Jan. 2023.
+45. J. Salfeld-Nebgen, "Governing actions, not agents: Institutional attestation as a governance model for autonomous AI systems," arXiv:2606.26298, Jun. 2026.

@@ -1,0 +1,422 @@
+[
+{
+"id": 0,
+"text": "def parse_csv_row(row): return [c.strip() for c in row.split(\",\")]",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 1,
+"text": "const total = items.reduce((sum, item) => sum + item.price, 0);",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 2,
+"text": "func (r *Repo) GetUserByID(id int64) (*User, error) { return r.db.Find(id) }",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 3,
+"text": "  - run: pytest --cov=app --cov-report=xml tests/",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 4,
+"text": "find ./logs -name \"*.log\" -mtime +30 -delete",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 5,
+"text": "Fix off-by-one error in pagination offset calculation",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 6,
+"text": "router.get('/api/orders/:id', async (req, res) => res.json(await Order.findById(req.params.id)));",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 7,
+"text": "def test_calculate_discount_applies_ten_percent(self): self.assertEqual(calculate_discount(100), 90)",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 8,
+"text": "if err != nil { return fmt.Errorf(\"failed to close file: %w\", err) }",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 9,
+"text": "for f in *.csv; do awk -F, '{print $2}' \"$f\" >> merged.txt; done",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 10,
+"text": "- return sum(prices) / len(prices)  +  return statistics.mean(prices)",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 11,
+"text": "- items.filter(x => x.active)  +  items.filter(x => x.active && !x.archived)",
+"label": 0,
+"bucket": "benign_ordinary"
+},
+{
+"id": 12,
+"text": "password_field = forms.CharField(widget=forms.PasswordInput())",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 13,
+"text": "const apiKeyInput = document.querySelector('#api-key-field');",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 14,
+"text": "type Creds struct { Token string `json:\"token\"` }",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 15,
+"text": "env: [{name: DB_PASSWORD, valueFrom: {secretKeyRef: {name: db-creds}}}]",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 16,
+"text": "get_secret_from_vault() { vault kv get -field=value \"$1\"; }",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 17,
+"text": "\"\"\"Rotate the API token every 90 days per security policy.\"\"\"",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 18,
+"text": "+    api_key: str  # injected by the secret manager at runtime",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 19,
+"text": "rename secret_token column to auth_token in users table",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 20,
+"text": "interface LoginRequest { username: string; password: string; }",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 21,
+"text": "ALTER TABLE integrations ADD COLUMN api_key_id INTEGER REFERENCES secrets(id);",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 22,
+"text": "def get_secret_from_vault(secret_name: str) -> str: ...",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 23,
+"text": "# secretRef: name of the k8s Secret object holding the DB password",
+"label": 0,
+"bucket": "benign_named"
+},
+{
+"id": 24,
+"text": "password = \"password123\"  # dummy user for login test",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 25,
+"text": "const apiKey = \"test_sk_ABCDEF1234567890\"; // mock, not real",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 26,
+"text": "token := os.Getenv(\"GITHUB_TOKEN\") // read from CI secret store",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 27,
+"text": "DATABASE_PASSWORD=changeme123  # .env.example placeholder value",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 28,
+"text": "export STRIPE_SECRET_KEY=sk_test_FAKE00000000000000000000",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 29,
+"text": "secret = client.get_secret_value(SecretId=\"prod/db-password\")[\"SecretString\"]",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 30,
+"text": "logger.info('login for ' + email + ', token=' + token.slice(0,4) + '****');",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 31,
+"text": "test: add fixture .env.example with placeholder AWS_SECRET_ACCESS_KEY",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 32,
+"text": "type LoginForm struct { PasswordField string `form:\"password_field\"` }",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 33,
+"text": "TEST_RSA_KEY = \"-----BEGIN PRIVATE KEY----- SYNTHETIC \"  # test fixture",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 34,
+"text": "api_key: \"YOUR_API_KEY_HERE\"  # replace with your own key",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 35,
+"text": "+    password = os.environ[\"DB_PASSWORD\"]  # replaced hardcoded value",
+"label": 0,
+"bucket": "benign_placeholder"
+},
+{
+"id": 36,
+"text": "stripe.api_key = \"sk_live_SYNTHETIC\"",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 37,
+"text": "const dbPassword = \"Tr0ub4dor&3xyz9WmQpR7z\";",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 38,
+"text": "githubToken := \"ghp_SYNTHETIC_NOT_REAL\"",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 39,
+"text": "postgres_password: \"Sn0wfl4ke_Prod_2024!Xk9mQ\"  # docker-compose.yml",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 40,
+"text": "export AWS_SECRET_ACCESS_KEY=SYNTHETIC_NOT_REAL",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 41,
+"text": "+ SLACK_BOT_TOKEN = \"xoxb-SYNTHETIC-FAKE\"",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 42,
+"text": "git commit -m \"oops, left prod Mailgun key key-SYNTHETIC-NOT-REAL in config\"",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 43,
+"text": "headers: { Authorization: \"Bearer sk-proj-SYNTHETIC\" }",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 44,
+"text": "SECRET_KEY = \"django-insecure-8x!k2m9q@vl4n$r7s#t1u&w3y\"",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 45,
+"text": "const dbPass = \"P@rspec2024ProdDB!Xk9mQ\"",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 46,
+"text": "API_TOKEN: \"npm_SYNTHETIC_NOT_REAL\"  # publish.yml",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 47,
+"text": "curl -H \"Authorization: token ghp_SYNTHETIC_NOT_REAL\" https://api.github.com/user",
+"label": 1,
+"bucket": "viol_literal"
+},
+{
+"id": 48,
+"text": "logging.info(f\"user={username} authenticated with password={password}\")",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 49,
+"text": "requests.get(api_url, headers={\"X-Api-Key\": API_KEY}, verify=False)",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 50,
+"text": "console.log('Stripe secret key:', process.env.STRIPE_SECRET_KEY);",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 51,
+"text": "axios.get(apiUrl, { headers: { Authorization: token }, httpsAgent: new Agent({ rejectUnauthorized: false }) });",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 52,
+"text": "log.Printf(\"connecting to db as %s with password %s\", dbUser, dbPassword)",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 53,
+"text": "resp, err := http.Get(\"https://\" + user + \":\" + pass + \"@internal.example.com/health\")",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 54,
+"text": "webhook_url: https://hooks.slack.com/services/T0000/B0000/AbCdEfGhIjKlMnOpQrStUvWx",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 55,
+"text": "+  private_key: \"-----BEGIN RSA PRIVATE KEY----- SYNTHETIC \"",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 56,
+"text": "git remote add origin https://oauth2:ghp_SYNTHETIC_NOT_REAL@github.com/acme/infra.git",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 57,
+"text": "curl -sk -H \"Authorization: Bearer $PROD_API_TOKEN\" https://payments.internal/v1/charge",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 58,
+"text": "git commit -m \"whoops - committed deploy/id_rsa private key, will rotate\"",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 59,
+"text": "+-----BEGIN OPENSSH PRIVATE KEY----- SYNTHETIC ",
+"label": 1,
+"bucket": "viol_other_forms"
+},
+{
+"id": 60,
+"text": "STRIPE_KEY = \"sk_test_51Hz8pKQwJ3xR2vN9mLtYbZcJhF6dS\"  # tests/conftest.py",
+"label": 1,
+"bucket": "contested"
+},
+{
+"id": 61,
+"text": "awsSecretKey := \"AKIASYNTHETIC0001\" // moto fixture, integration_test.go",
+"label": 1,
+"bucket": "contested"
+},
+{
+"id": 62,
+"text": "GH_TOKEN: ${{ secrets.GH_TOKEN || 'ghp_SYNTHETIC_NOT_REAL' }}",
+"label": 1,
+"bucket": "contested"
+},
+{
+"id": 63,
+"text": "console.log(`token=${token.slice(0, 6)}***`);",
+"label": 0,
+"bucket": "contested"
+},
+{
+"id": 64,
+"text": "git commit -m \"rotate leaked prod DB password; old value stays in .env.bak\"",
+"label": 1,
+"bucket": "contested"
+},
+{
+"id": 65,
+"text": "requests.post(url, headers=auth_hdr, verify=False)  # hits local self-signed test server",
+"label": 0,
+"bucket": "contested"
+},
+{
+"id": 66,
+"text": "JWT_SECRET: devsecretdevsecret123  # local only, never deployed",
+"label": 1,
+"bucket": "contested"
+},
+{
+"id": 67,
+"text": "git add certs/localhost-dev.key  # self-signed cert for docker-compose https",
+"label": 1,
+"bucket": "contested"
+},
+{
+"id": 68,
+"text": "-DB_PASSWORD = \"Tr0ub4dor&3prod\"  +DB_PASSWORD = os.environ[\"DB_PASSWORD\"]",
+"label": 1,
+"bucket": "contested"
+},
+{
+"id": 69,
+"text": "curl -X POST https://hooks.slack.com/services/T000/B000/XXXXXXXXXXXXXXXXXXXXXXXX",
+"label": 1,
+"bucket": "contested"
+}
+]

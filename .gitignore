@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+.DS_Store
+PAPER-EXTENDED.md
+figs/loom.svg.png
+
+# LaTeX build intermediates (main.pdf left untracked on purpose — commit it if you
+# want readers to get the paper without a toolchain)
+*.aux
+*.log
+*.out
+*.xdv
+*.bbl
+*.blg
+*.synctex.gz
