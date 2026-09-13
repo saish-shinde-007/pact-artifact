@@ -8,7 +8,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 SRC = ROOT / "PAPER.md"
-OUT = ROOT / "main.tex"
+import sys
+
+# --anon: SaTML-style double-blind build (main-anon.tex; author block swapped,
+# nothing else differs). Default build is the named arXiv/camera-ready one.
+ANON = "--anon" in sys.argv
+OUT = ROOT / ("main-anon.tex" if ANON else "main.tex")
+AUTHOR_BLOCK = (
+    "\n\\author{\\IEEEauthorblockN{Anonymous Author(s)}\n"
+    "\\IEEEauthorblockA{Double-blind submission to IEEE SaTML 2027}}\n"
+    if ANON else
+    "\n\\author{\\IEEEauthorblockN{Saish Sanjay Shinde}\n"
+    "\\IEEEauthorblockA{\\textit{San Jos\\'e State University} \\\\\n"
+    "San Jos\\'e, CA, USA \\\\\nsaish.shinde@sjsu.edu}}\n")
 FIG = ROOT / "figs" / "loom.png"
 
 # Non-ASCII actually present in PAPER.md (see the inventory in the commit that added
@@ -174,9 +186,7 @@ def main():
 
     doc = (PREAMBLE
            + "\n\\title{%s}\n" % inline(title, code)
-           + "\n\\author{\\IEEEauthorblockN{Saish Sanjay Shinde}\n"
-             "\\IEEEauthorblockA{\\textit{San Jos\\'e State University} \\\\\n"
-             "San Jos\\'e, CA, USA \\\\\nsaish.shinde@sjsu.edu}}\n"
+           + AUTHOR_BLOCK
            + "\n\\maketitle\n"
            + "\n\\begin{abstract}\n%s\n\\end{abstract}\n" % inline(abstract, code)
            + "\n\\begin{IEEEkeywords}\n%s\n\\end{IEEEkeywords}\n" % inline(kw, code)

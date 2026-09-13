@@ -18,3 +18,4 @@ figs/loom.svg.png
 *.blg
 *.synctex.gz
 dist/
+main-anon.tex
