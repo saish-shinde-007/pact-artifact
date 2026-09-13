@@ -7,6 +7,7 @@ authors:
     given-names: Saish Sanjay
     email: saish.shinde@sjsu.edu
     affiliation: San José State University
+doi: 10.5281/zenodo.22738800
 repository-code: "https://github.com/saish-shinde-007/pact-paper"
 abstract: >-
   Reference implementation and evaluation harness for PACT, a protocol that makes
