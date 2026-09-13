@@ -67,8 +67,12 @@ def apply_exclusions(ids, drop, where):
 
 
 # ---------------------------------------------------------------- E13
-def e13_intervals(rng, drop=frozenset(), exact_p=False):
+def e13_intervals(rng, drop=frozenset(), exact_p=False, labels="v2"):
     truth = {t["id"]: t for t in json.load(open(os.path.join(HERE, "jury_sample.json")))}
+    if labels == "v1":
+        import neutral_corpus
+        v1 = {it["id"]: it["label"] for it in neutral_corpus.build("v1")}
+        truth = {i: dict(t, label=v1[i]) for i, t in truth.items()}
     jurors = json.load(open(os.path.join(HERE, "jury_verdicts.json")))["jurors"]
     calls = {j["juror"]: {v["id"]: (1 if v["verdict"] == "VIOLATION" else 0)
                           for v in j["verdicts"] if v["id"] in truth} for j in jurors}
@@ -175,12 +179,13 @@ def e13_intervals(rng, drop=frozenset(), exact_p=False):
 
 
 # ---------------------------------------------------------------- E14
-def e14_intervals(rng, drop=frozenset()):
+def e14_intervals(rng, drop=frozenset(), labels="v2"):
     import e14
     import neutral_detectors as ND
     from jury import sample_jury, tally
 
-    items = e14.ITEMS
+    import neutral_corpus
+    items = [dict(it) for it in neutral_corpus.build(labels)]
     kept = set(apply_exclusions([it["id"] for it in items], drop, "E14"))
     items = [it for it in items if it["id"] in kept]
     lab = [it["label"] for it in items]
@@ -240,6 +245,8 @@ def e14_intervals(rng, drop=frozenset()):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--labels", default="v2", choices=("v2", "v1"),
+                    help="v2 = adjudicated labels (default); v1 = as authored")
     ap.add_argument("--exclude-ids", default="",
                     help="comma-separated item ids to drop (see label_audit.py), or "
                          "'audit' to take them from label_audit directly. Applies to "
@@ -250,8 +257,8 @@ def main():
     args = ap.parse_args()
     drop = exclusion_set(args.exclude_ids)
     rng = random.Random(SEED)
-    e13_intervals(rng, drop, args.exact_p)
-    e14_intervals(rng, drop)
+    e13_intervals(rng, drop, args.exact_p, labels=args.labels)
+    e14_intervals(rng, drop, labels=args.labels)
     print("\nAll intervals are percentile bootstrap over ITEMS, which is the sampling")
     print("unit that would change if the corpus were rewritten. They do NOT cover")
     print("variation from model choice, prompt framing, or policy clause — those are")

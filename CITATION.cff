@@ -13,11 +13,12 @@ abstract: >-
   deployed AI conduct non-repudiable and adjudicable among mutually distrusting
   parties. Includes a hash-chained evidence log with witness-cosigned Merkle
   checkpoints, a diversity-constrained commit-reveal jury protocol, a precedent
-  graph, and the experiment harness behind the paper's results — notably a
-  measurement showing that real evaluator models used as jurors fail with errors
-  correlated at roughly 4.7x what independence predicts, concentrated on the cases
-  pre-labelled as contested, and that a two-thirds jury can score well below its
-  best single member.
+  graph, and the experiment harness behind the paper's results — notably that
+  juror error correlation is judgment rather than lineage (cross-vendor pairs as
+  correlated as within-vendor across 19 jurors from 9 vendors, two prompt framings
+  and two label sets), concentrated on the cases pre-labelled contested, and that
+  aggregation buys containment but never accuracy: every voting rule scores below
+  the best single juror once the corpus labels are corrected.
 keywords:
   - AI accountability
   - LLM-as-judge

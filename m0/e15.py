@@ -49,6 +49,8 @@ def load(verdicts_path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--verdicts", default="jury_verdicts_xvendor.json")
+    ap.add_argument("--labels", default="v2", choices=("v2", "v1"),
+                    help="v2 = adjudicated labels (default); v1 = as authored")
     ap.add_argument("--exclude-ids", default="",
                     help="comma-separated item ids to drop (see label_audit.py), or "
                          "'audit' to take them from label_audit directly")
@@ -58,6 +60,11 @@ def main():
         raise SystemExit(f"no verdict file at {path}; run run_jurors.py first")
 
     truth, calls, ids, prov = load(path)
+    if args.labels == "v1":
+        import neutral_corpus
+        v1 = {it["id"]: it["label"] for it in neutral_corpus.build("v1")}
+        truth = {i: dict(t, label=v1[i]) for i, t in truth.items()}
+        print("\nLABELS v1 (as authored, pre-adjudication)")
     dropped = []
     if args.exclude_ids:
         if args.exclude_ids.strip() == "audit":

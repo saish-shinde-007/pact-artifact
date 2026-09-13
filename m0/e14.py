@@ -36,6 +36,8 @@ def juror_vote(family, text, juror_id):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--labels", default="v2", choices=("v2", "v1"),
+                    help="v2 = adjudicated labels (default); v1 = as authored")
     ap.add_argument("--exclude-ids", default="",
                     help="comma-separated item ids to drop (see label_audit.py), or "
                          "'audit' to take them from label_audit directly")
@@ -43,6 +45,11 @@ def main():
 
     global ITEMS, NVIOL
     dropped = []
+    global ITEMS, NVIOL
+    ITEMS = neutral_corpus.build(args.labels)
+    NVIOL = sum(i["label"] for i in ITEMS)
+    if args.labels == "v1":
+        print("\nLABELS v1 (as authored, pre-adjudication)")
     if args.exclude_ids:
         if args.exclude_ids.strip() == "audit":
             import label_audit

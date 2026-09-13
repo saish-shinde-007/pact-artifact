@@ -47,6 +47,8 @@ def prf(tp, fp, fn):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--verdicts", default=VERDICTS)
+    ap.add_argument("--labels", default="v2", choices=("v2", "v1"),
+                    help="v2 = adjudicated labels (default); v1 = as authored")
     ap.add_argument("--exclude-ids", default="",
                     help="comma-separated item ids to drop (see label_audit.py), or "
                          "'audit' to take them from label_audit directly")
@@ -58,6 +60,11 @@ def main():
               f"write {{'jurors': [{{'juror','verdicts'}}]}} to {verdicts}")
         return
     truth = {t["id"]: t for t in json.load(open(SAMPLE))}
+    if args.labels == "v1":
+        import neutral_corpus
+        v1 = {it["id"]: it["label"] for it in neutral_corpus.build("v1")}
+        truth = {i: dict(t, label=v1[i]) for i, t in truth.items()}
+        print("\nLABELS v1 (as authored, pre-adjudication)")
     jurors = json.load(open(verdicts))["jurors"]
     calls = {j["juror"]: {v["id"]: (1 if v["verdict"] == "VIOLATION" else 0)
                           for v in j["verdicts"] if v["id"] in truth} for j in jurors}

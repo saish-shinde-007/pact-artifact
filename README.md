@@ -146,28 +146,33 @@ judging the same 70 items under the same prompt, with 12 *within*-vendor pairs t
 against 159 *cross*-vendor pairs.
 
 The hedge does not survive, under either of two prompt framings (`PACT_PROMPT=jp:v2`
-reruns the panel under a minimal second framing; `m0/jury_verdicts_xvendor_v2.json`). Cross-vendor pairs are as correlated as within-vendor pairs:
-mean 3.2× cross vs 3.1× within, difference 95% CI [−0.3, 0.1], and all 171 pairs reject
-independence. Lineage is not what produces the agreement. The finding is therefore
-*stronger* than published, not weaker, and the "upper bound" sentence has to go.
+reruns the panel under a minimal second framing; `m0/jury_verdicts_xvendor_v2.json`) and
+under either label set (below). Cross-vendor pairs are as correlated as within-vendor
+pairs — corrected labels: mean 3.6× cross vs 3.5× within, difference 95% CI [−0.8, 0.7] —
+and the difference interval contains zero in all six cuts (two framings × three label
+regimes). Lineage is not what produces the agreement.
 
-**And running it surfaced a problem with my own corpus.** See `label_audit.py`: 11 of the
-32 violation-labelled items carry a value that announces itself as synthetic
-(`ghp_SYNTHETIC_NOT_REAL`), while the clause prohibits a ***live*** credential literal.
-Nineteen models from nine vendors clear those items, which is the clause applied as
-written. Scoring that as juror error charges my corpus-construction conflict to the
-models. On the audited 59-item corpus every juror's F1 rises sharply (best single juror
-0.800 → 0.927) and *no* item defeats the whole panel. The correlation result holds either
-way; the voting-rule result does not — see the paper's discussion.
+**And running it surfaced a problem with my own corpus, since adjudicated.** See
+`label_audit.py`: 11 of the 32 violation-labelled items carried a value announcing itself
+synthetic (`ghp_SYNTHETIC_NOT_REAL`) while the clause prohibits a ***live*** credential
+literal; nineteen models from nine vendors cleared them, which is the clause applied as
+written. Those labels are now **corrected in place** (`neutral_corpus.ADJUDICATED_V2`,
+dated in source; texts untouched); the authored labels stay runnable everywhere with
+`--labels v1`, and the label gate runs in the test suite so a future conflict fails CI.
+Under corrected labels no item defeats the 19-model panel and **every voting rule scores
+below the best single juror in both framings** — including the asymmetric rule, whose
+apparent win under the authored labels was a label artifact. What survives every regime:
+aggregation buys containment (0.905 vs 0.286, disjoint intervals), never accuracy; and
+the correlation is judgment, not lineage. The magnitude moves with regime (2.7×–5.8×),
+and the paper says so instead of picking a flattering value.
 
 **What is still unmeasured.** The corpus was authored by language-model agents rather
-than people, there is no human baseline on the same items, and every number rests on one
-prompt framing at temperature 0. If you run this on models or a corpus I did not, I would
-like to know what you got.
+than people, and there is no human baseline on the same items. If you run this on models
+or a corpus I did not, I would like to know what you got.
 
 ## The corpus
 
-`m0/neutral_corpus.py` holds 70 one-line code-review items under policy clause
+`m0/neutral_corpus.py` holds 70 one-line code-review items (labels v2, adjudicated 2026-09-13; `build("v1")` returns them as authored) under policy clause
 `pol:v2#c1` (repository secret handling), 32 of them violations, in six buckets:
 `benign_ordinary`, `benign_named`, `benign_placeholder`, `viol_literal`,
 `viol_other_forms`, `contested`. `m0/jury_sample.json` is the same set flattened to

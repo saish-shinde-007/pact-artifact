@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Audit corpus labels against clause pol:v2#c1, blind of all verdicts: a VIOLATION label
 resting on the 'live credential literal' bullet conflicts when its value announces itself
-synthetic. The private-key/log/TLS bullets carry no 'live' qualifier, so those labels stand.
+synthetic. Clean since the 2026-09-13 adjudication; runs in the suite as the label gate.
 """
 import argparse
 import json
@@ -40,8 +40,9 @@ def bullet_for(text):
     return 1, "live credential as a literal in source"
 
 
-def audit():
-    items = json.load(open(os.path.join(HERE, "jury_sample.json")))
+def audit(items=None):
+    if items is None:
+        items = json.load(open(os.path.join(HERE, "jury_sample.json")))
     conflicts, stands, exempt_ctx = [], [], []
     for it in items:
         if it["label"] != 1:
@@ -66,6 +67,12 @@ def main():
     args = ap.parse_args()
     items, conflicts, stands, exempt_ctx = audit()
     ids = [it["id"] for it, *_ in conflicts] + [it["id"] for it, *_ in exempt_ctx]
+    if not ids and not args.ids:
+        n_viol = sum(1 for it in items if it["label"] == 1)
+        print(f"\nCLEAN: no label/clause conflicts across {len(items)} items "
+              f"({n_viol} violations). The 11 found on the authored labels were "
+              f"adjudicated 2026-09-13 (neutral_corpus.ADJUDICATED_V2).")
+        return
 
     if args.ids:
         print(",".join(str(i) for i in sorted(ids)))

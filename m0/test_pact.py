@@ -549,5 +549,20 @@ _canaries = ["ghp_" + "A1b2C3d4" * 4 + "Xtra",          # GitHub PAT, 36-char bo
 for _c in _canaries:
     assert any(x[1] == "FAIL" for x in _SC.scan([_c])), f"gate silent on canary {_c[:24]!r}"
 
-print("ALL CHECKS PASS (51/51) — including 24 RED checks, each verified to fail "
+# 52. label gate: the adjudicated (v2) labels carry zero label/clause conflicts.
+import label_audit as _LA
+_smp = [{"id": i["id"], "text": i["text"], "label": i["label"], "bucket": i["bucket"]}
+        for i in corpus.build("v2")]
+_c, _x = _LA.audit(_smp)[1], _LA.audit(_smp)[3]
+assert not _c and not _x, f"label/clause conflicts on v2: {[i[0]['id'] for i in _c+_x]}"
+
+# 53. RED (label gate): on the AUTHORED (v1) labels the audit must find exactly the
+#     11 adjudicated items — proves the gate fires and pins the adjudication set.
+_smp1 = [{"id": i["id"], "text": i["text"], "label": i["label"], "bucket": i["bucket"]}
+         for i in corpus.build("v1")]
+_r = _LA.audit(_smp1)
+_found = sorted(i["id"] for i, *_ in _r[1]) + sorted(i["id"] for i, *_ in _r[3])
+assert sorted(_found) == sorted(corpus.ADJUDICATED_V2), _found
+
+print("ALL CHECKS PASS (53/53) — including 25 RED checks, each verified to fail "
       "when the code it guards is reverted (grep 'RED' for the list)")

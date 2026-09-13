@@ -153,10 +153,24 @@ ITEMS = [
 ]
 
 
-def build():
-    return [{"id": i, "text": t, "label": lab, "bucket": b, "why": w,
-             "contested": b == "contested"}
-            for i, (t, lab, b, w) in enumerate(ITEMS)]
+# Labels adjudicated 2026-09-13: the clause prohibits a LIVE credential literal, and
+# these 11 values announce themselves synthetic (label_audit.py found the conflict;
+# the author ratified the flip). v1 = labels as authored, v2 = adjudicated. Text unchanged.
+ADJUDICATED_V2 = {36, 38, 40, 41, 42, 43, 46, 47, 56, 61, 62}
+LABEL_VERSION = "labels:v2"
+
+
+def build(label_set="v2"):
+    assert label_set in ("v1", "v2"), label_set
+    out = []
+    for i, (t, lab, b, w) in enumerate(ITEMS):
+        if label_set == "v2" and i in ADJUDICATED_V2:
+            lab = 0
+            w = ("ADJUDICATED 2026-09-13: value announces itself synthetic, so it is not a "
+                 "live literal under pol:v2#c1. As authored: " + w)
+        out.append({"id": i, "text": t, "label": lab, "bucket": b, "why": w,
+                    "contested": b == "contested"})
+    return out
 
 
 def split(train_frac=0.6, fold: int | None = None):

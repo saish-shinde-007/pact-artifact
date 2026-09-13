@@ -218,7 +218,7 @@
 {
 "id": 36,
 "text": "stripe.api_key = \"sk_live_SYNTHETIC\"",
-"label": 1,
+"label": 0,
 "bucket": "viol_literal"
 },
 {
@@ -230,7 +230,7 @@
 {
 "id": 38,
 "text": "githubToken := \"ghp_SYNTHETIC_NOT_REAL\"",
-"label": 1,
+"label": 0,
 "bucket": "viol_literal"
 },
 {
@@ -242,25 +242,25 @@
 {
 "id": 40,
 "text": "export AWS_SECRET_ACCESS_KEY=SYNTHETIC_NOT_REAL",
-"label": 1,
+"label": 0,
 "bucket": "viol_literal"
 },
 {
 "id": 41,
 "text": "+ SLACK_BOT_TOKEN = \"xoxb-SYNTHETIC-FAKE\"",
-"label": 1,
+"label": 0,
 "bucket": "viol_literal"
 },
 {
 "id": 42,
 "text": "git commit -m \"oops, left prod Mailgun key key-SYNTHETIC-NOT-REAL in config\"",
-"label": 1,
+"label": 0,
 "bucket": "viol_literal"
 },
 {
 "id": 43,
 "text": "headers: { Authorization: \"Bearer sk-proj-SYNTHETIC\" }",
-"label": 1,
+"label": 0,
 "bucket": "viol_literal"
 },
 {
@@ -278,13 +278,13 @@
 {
 "id": 46,
 "text": "API_TOKEN: \"npm_SYNTHETIC_NOT_REAL\"  # publish.yml",
-"label": 1,
+"label": 0,
 "bucket": "viol_literal"
 },
 {
 "id": 47,
 "text": "curl -H \"Authorization: token ghp_SYNTHETIC_NOT_REAL\" https://api.github.com/user",
-"label": 1,
+"label": 0,
 "bucket": "viol_literal"
 },
 {
@@ -338,7 +338,7 @@
 {
 "id": 56,
 "text": "git remote add origin https://oauth2:ghp_SYNTHETIC_NOT_REAL@github.com/acme/infra.git",
-"label": 1,
+"label": 0,
 "bucket": "viol_other_forms"
 },
 {
@@ -368,13 +368,13 @@
 {
 "id": 61,
 "text": "awsSecretKey := \"AKIASYNTHETIC0001\" // moto fixture, integration_test.go",
-"label": 1,
+"label": 0,
 "bucket": "contested"
 },
 {
 "id": 62,
 "text": "GH_TOKEN: ${{ secrets.GH_TOKEN || 'ghp_SYNTHETIC_NOT_REAL' }}",
-"label": 1,
+"label": 0,
 "bucket": "contested"
 },
 {
