@@ -172,6 +172,18 @@ The deadlock in AI oversight is that everyone wants everyone else verified while
 
 ---
 
+## Open Science
+
+All code, the 70-item corpus, both juror prompts and all 2,870 recorded verdicts are available at ARTIFACT-LINK. Every quantitative claim in this paper is produced by a script in that repository, and experiments are hash-seeded rather than RNG-seeded, so each number reproduces exactly. The test suite carries 53 checks, 25 of them verified to fail when the code they guard is mutated. Both label sets and both prompt framings are runnable from the released tree.
+
+## LLM Usage Considerations
+
+Large language models appear in this work in three roles, and we distinguish them. First, as subjects: the nineteen evaluator models whose verdicts we measure are the object of study, and their outputs are recorded verbatim in the artifact with the hash of the prompt that produced them. Second, as corpus authors: the 70 items were written by six isolated language-model agents from the policy clause alone, a design choice described in Section VI and treated as a limitation in Section VIII. Third, as assistants: LLM tooling was used under the author's direction for engineering and manuscript editing. The author reviewed all content and takes full responsibility for it, and every reported number is produced by the released scripts rather than by any model's assertion.
+
+## Ethical Considerations
+
+The evaluation domain is benign by construction: repository secret handling, with items that are one-line fragments of ordinary engineering content. Every credential-shaped string in the corpus is synthetic, and a gate in the test suite verifies that no live-format secret ships. Models are asked only to classify; no experiment elicits harmful content, and when evaluator models declined a task in an earlier companion run, the refusals were recorded as a finding rather than circumvented, which motivated first-class abstention in the protocol. The work involves no human subjects and no personal data.
+
 ## References
 
 All entries verified against primary sources (RFC Editor, ACM DL, IEEE Xplore,

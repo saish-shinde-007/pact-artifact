@@ -13,6 +13,10 @@ import sys
 # --anon: SaTML-style double-blind build (main-anon.tex; author block swapped,
 # nothing else differs). Default build is the named arXiv/camera-ready one.
 ANON = "--anon" in sys.argv
+ARTIFACT = ("the anonymized repository accompanying this submission "
+            "(https://anonymous.4open.science/r/pact-review-2027)" if ANON else
+            "https://github.com/saish-shinde-007/pact-paper, archived with DOI "
+            "10.5281/zenodo.22738800")
 OUT = ROOT / ("main-anon.tex" if ANON else "main.tex")
 AUTHOR_BLOCK = (
     "\n\\author{\\IEEEauthorblockN{Anonymous Author(s)}\n"
@@ -123,7 +127,10 @@ def render(md: str) -> str:
         ln = lines[i]
         if ln.startswith("## "):                                    # section
             t = re.sub(r"^[IVX]+\.\s*", "", ln[3:].strip())
-            out.append("\n\\section{%s}" % inline(t, code)); i += 1
+            # SaTML-required statements are unnumbered and sit before the references
+            star = "*" if t in ("Open Science", "LLM Usage Considerations",
+                                "Ethical Considerations") else ""
+            out.append("\n\\section%s{%s}" % (star, inline(t, code))); i += 1
             if t == "Introduction":
                 out.append(FIGURE)
             continue
@@ -192,7 +199,7 @@ def main():
            + "\n\\begin{IEEEkeywords}\n%s\n\\end{IEEEkeywords}\n" % inline(kw, code)
            + render(body) + "\n" + "\n".join(bib) + "\n\n\\end{document}\n")
 
-    OUT.write_text(doc)
+    OUT.write_text(doc.replace("ARTIFACT-LINK", ARTIFACT))
     SAFE = set("\u00e4\u00e9\u00fc\u00f6\u00e1\u00e8\u00ed\u00f3\u00fa\u00f1\u00e7\u00c9\u00c4")  # inputenc handles these directly
     leftover = sorted({c for c in doc if ord(c) > 126 and c not in SAFE})
     print(f"wrote {OUT}  ({len(refs)} refs, {len(doc.split())} tokens)")

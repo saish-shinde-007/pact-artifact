@@ -189,7 +189,7 @@ def main():
   </div>
 </div>
 """
-    OUT.write_text(doc)
+    OUT.write_text(doc.replace('ARTIFACT-LINK', 'https://github.com/saish-shinde-007/pact-paper (DOI 10.5281/zenodo.22738800)'))
     print(f"wrote {OUT}  ({len(rendered.split())} body words, {len(refs)} refs)")
 
 
