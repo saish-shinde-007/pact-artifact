@@ -27,28 +27,28 @@ are the ones that came back negative.
 
 ## Headline findings
 
-**Evaluator models do not fail independently.** Three model tiers adjudicating the same
-70 labelled items, blind, under one policy clause, produce errors correlated at
-**4.7× what independence predicts** — bootstrap 95% CI [3.3, 9.4], above 1.0 in every one of
-20,000 replicates, with permutation tests rejecting independence for all three pairs
-(*p* = 0.009, 0.009, < 0.0001). Pairwise 2.5× [1.4, 4.1], 2.8× [1.6, 4.4], 8.8× [5.0, 23.3]. Five items defeat all
-three models, and **every one of them is from the set pre-labelled as contested**. The
-models converge on the easy calls and make the *same* error on the hard ones — the worst
-failure shape a jury can have. The diversity constraint that AI-jury designs rest on
-therefore buys materially less than "three independent families" implies.
+**Evaluator models do not fail independently, and the correlation is judgment, not
+lineage.** Nineteen jurors from nine vendors judged the same 70 items blind under a
+fixed, hash-stamped prompt. Cross-vendor pairs are as correlated as within-vendor pairs,
+with the difference interval containing zero in every combination of prompt framing and
+label set tested, and the mean joint-error ratio exceeds the independence prediction in
+every bootstrap replicate. The magnitude moves with labelling and framing (2.7x to 5.8x),
+so the paper claims the invariant rather than a single number. The items that defeat
+whole panels are exactly the ones pre-labelled contested.
 
-**A jury can be worse than its best member.** Under a plain two-thirds rule the panel
-scores **F1 0.256 against its best single member's 0.577** (gap −0.321, 95% CI [−0.506, −0.142],
-negative in every replicate). On data nobody could tune
-to, a supermajority rarely forms, so the jury convicts far less than its best member
-would.
+**A jury is not safer than its best member.** Every voting rule on the nineteen-juror
+panel scores below the best single juror, in both prompt framings: two-thirds 0.757,
+simple majority 0.800 and any-single-vote 0.737 against 0.865 under one framing; 0.811,
+0.857 and 0.700 against 0.913 under the other. The rule-based eleven-seat jury turns out
+to behave as a single member: its machine decisions match one detector on 69 of 70 items.
 
-**Asymmetric thresholds buy containment, not detection.** A lone-detector rule — one
-violation vote cannot be overridden into an auto-clear, only escalated — cuts auto-cleared
-violations from **50.0% to 9.4%**, at the cost of human review load rising from **20.0%
-to 72.9%**. Machine precision and recall are *identical* under both rules. The rule
-changes nothing about what the system decides, only about what it refuses to silently
-clear.
+**Asymmetric thresholds buy containment, not detection.** A lone-detector rule (one
+violation vote cannot be overridden into an auto-clear, only escalated) contains
+**0.905 [0.762, 1.000]** of true violations where the two-thirds rule contains
+**0.286 [0.095, 0.476]**; the intervals are disjoint. Human review load rises from
+**20.0% to 72.9%**. Machine precision and recall are identical under both rules. The
+rule changes nothing about what the system decides, only what it refuses to clear
+silently.
 
 **Juror availability falls as severity rises.** In a companion run on a more sensitive
 corpus, two of three models refused the adjudication task outright. A juror must read
@@ -77,7 +77,7 @@ cd m0 && python3 -m venv .venv && ./.venv/bin/pip install cryptography
 cd m0 && ./.venv/bin/python3 test_pact.py
 ```
 
-49 checks, 23 of them RED-verified: each was confirmed to fail when the code it guards is
+53 checks, 25 of them RED-verified: each was confirmed to fail when the code it guards is
 mutated, so the suite is known to be capable of failing. Three pre-existing tests that
 *could not fail at all* were found this way, including one that would have permitted the
 jury supermajority threshold to be relaxed to a simple majority.
