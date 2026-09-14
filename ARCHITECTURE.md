@@ -1,7 +1,7 @@
 # PACT — Peer Accountability & Conduct Tracking
 
 **A federated accountability ledger for AI systems.**
-Architecture draft v0.1 — Saish Shinde, 2026-09-12. Working doc for the research paper and the open-source build. Name is a placeholder (§12).
+Architecture draft v0.1 — Anonymous, 2026-09-12. Working doc for the research paper and the open-source build. Name is a placeholder (§12).
 
 ---
 

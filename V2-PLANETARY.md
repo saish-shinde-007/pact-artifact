@@ -1,7 +1,7 @@
 # PACT-2 — A Planetary Federation for AI Accountability
 
 **v2 architecture: faster, smarter, and scoped to monitor most of the world's models — built as a technical answer to the standing public calls for verifiable AI oversight.**
-Saish Shinde, 2026-09-12. Companion to `ARCHITECTURE.md` (v1). v1 stays the per-deployment protocol; v2 is the planetary federation wrapped around it.
+Anonymous, 2026-09-12. Companion to `ARCHITECTURE.md` (v1). v1 stays the per-deployment protocol; v2 is the planetary federation wrapped around it.
 
 ---
 

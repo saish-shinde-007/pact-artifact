@@ -15,16 +15,15 @@ import sys
 ANON = "--anon" in sys.argv
 ARTIFACT = ("the anonymized repository accompanying this submission "
             "(https://anonymous.4open.science/r/pact-review-2027)" if ANON else
-            "https://github.com/saish-shinde-007/pact-paper, archived with DOI "
-            "10.5281/zenodo.22738800")
+            "https://github.com/Anonymous-Anonymous-007/pact-paper, archived with DOI "
+            "10.5281/zenodo.ANONYMIZED")
 OUT = ROOT / ("main-anon.tex" if ANON else "main.tex")
 AUTHOR_BLOCK = (
     "\n\\author{\\IEEEauthorblockN{Anonymous Author(s)}\n"
     "\\IEEEauthorblockA{Double-blind submission to IEEE SaTML 2027}}\n"
     if ANON else
-    "\n\\author{\\IEEEauthorblockN{Saish Sanjay Shinde}\n"
-    "\\IEEEauthorblockA{\\textit{San Jos\\'e State University} \\\\\n"
-    "San Jos\\'e, CA, USA \\\\\nsaish.shinde@sjsu.edu}}\n")
+    "\n\\author{\\IEEEauthorblockN{Anonymous Author(s)}\n"
+    "\\IEEEauthorblockA{Double-blind submission to IEEE SaTML 2027}}\n")
 FIG = ROOT / "figs" / "loom.png"
 
 # Non-ASCII actually present in PAPER.md (see the inventory in the commit that added

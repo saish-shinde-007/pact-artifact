@@ -1,6 +1,6 @@
 # PACT: An Accountability Protocol for Deployed AI Systems, with Measured Limits on AI-Jury Adjudication
 
-**Author: Saish Sanjay Shinde**
+**Author: Anonymous**
 
 Submission draft. Every quantitative claim is produced by a script in `m0/` and is
 reproducible by running it. The broader architectural programme this protocol belongs
@@ -174,7 +174,7 @@ The deadlock in AI oversight is that everyone wants everyone else verified while
 
 ## Open Science
 
-All code, the 70-item corpus, both juror prompts and all 2,870 recorded verdicts are available at ARTIFACT-LINK. Every quantitative claim in this paper is produced by a script in that repository, and experiments are hash-seeded rather than RNG-seeded, so each number reproduces exactly. The test suite carries 53 checks, 25 of them verified to fail when the code they guard is mutated. Both label sets and both prompt framings are runnable from the released tree.
+All code, the 70-item corpus, both juror prompts and all 2,870 recorded verdicts are available at the anonymized repository accompanying this submission (https://anonymous.4open.science/r/pact-review-2027). Every quantitative claim in this paper is produced by a script in that repository, and experiments are hash-seeded rather than RNG-seeded, so each number reproduces exactly. The test suite carries 53 checks, 25 of them verified to fail when the code they guard is mutated. Both label sets and both prompt framings are runnable from the released tree.
 
 ## LLM Usage Considerations
 

@@ -1,6 +1,5 @@
 # PACT — an accountability protocol for deployed AI systems
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22738800.svg)](https://doi.org/10.5281/zenodo.22738800)
 
 Reference implementation and evaluation harness for the paper *PACT: An Accountability
 Protocol for Deployed AI Systems, with Measured Limits on AI-Jury Adjudication*
@@ -249,14 +248,13 @@ If you use the corpus, the harness, or the independence measurement, please cite
 software archive:
 
 ```bibtex
-@software{shinde_pact_2026,
-  author  = {Shinde, Saish Sanjay},
+@software{Anonymous_pact_2026,
+  author  = {Anonymous},
   title   = {{PACT}: Reference Implementation and Evaluation Harness
              for an {AI} Accountability Protocol},
   year    = {2026},
   version = {1.0.0},
-  doi     = {10.5281/zenodo.22738800},
-  url     = {https://github.com/saish-shinde-007/pact-paper}
+    url     = {anonymized for review}
 }
 ```
 
@@ -274,4 +272,4 @@ attribute.
 
 ## Contact
 
-Saish Sanjay Shinde — San José State University — saish.shinde@sjsu.edu
+Anonymous — Anonymous Institution — Anonymous.Anonymous@Anonymous Institution.edu

@@ -137,7 +137,7 @@ def main():
 
     title = re.search(r"^# (.+)$", md, re.M).group(1)
     author = re.search(r"^\*\*Author: (.+?)\*\*", md, re.M)
-    author = author.group(1) if author else "Saish Sanjay Shinde"
+    author = author.group(1) if author else "Anonymous"
 
     abstract = re.search(r"^## Abstract\s*\n+(.+?)\n\n", md, re.S | re.M).group(1)
     kw = re.search(r"\*\*Index terms\*\* — (.+?)\.", md, re.S)
@@ -176,7 +176,7 @@ def main():
   <div class="authors">
     <div class="name">{html.escape(author)}</div>
     <div class="aff">San Jos&eacute; State University<br>San Jos&eacute;, CA, USA<br>
-      saish.shinde@sjsu.edu</div>
+      Anonymous.Anonymous@Anonymous Institution.edu</div>
   </div>
   <div class="cols">
     <p class="abstract"><span class="lead">Abstract</span>—{inline(abstract)}</p>
@@ -189,7 +189,7 @@ def main():
   </div>
 </div>
 """
-    OUT.write_text(doc.replace('ARTIFACT-LINK', 'https://github.com/saish-shinde-007/pact-paper (DOI 10.5281/zenodo.22738800)'))
+    OUT.write_text(doc.replace('ARTIFACT-LINK', 'https://github.com/Anonymous-Anonymous-007/pact-paper (DOI 10.5281/zenodo.ANONYMIZED)'))
     print(f"wrote {OUT}  ({len(rendered.split())} body words, {len(refs)} refs)")
 
 

@@ -1,6 +1,6 @@
 # Novelty audit — PACT/WEFT claim-by-claim prior-art sweep
 
-Saish Shinde, 2026-09-12. Web sweep across every load-bearing claim in `PAPER.md` v0.3. Verdict scale: **EXISTS** (prior art does this; cite + delta or drop) · **ADJACENT** (concept exists in another form; cite + sharpen delta) · **LIKELY NOVEL** (nothing found; still verify at submission — absence of evidence ≠ proof).
+Anonymous, 2026-09-12. Web sweep across every load-bearing claim in `PAPER.md` v0.3. Verdict scale: **EXISTS** (prior art does this; cite + delta or drop) · **ADJACENT** (concept exists in another form; cite + sharpen delta) · **LIKELY NOVEL** (nothing found; still verify at submission — absence of evidence ≠ proof).
 
 The honest headline: nothing in the paper is copied from anyone — every construct was derived in-session from requirements. But research is simultaneous invention everywhere; several of our constructs have independent neighbors that MUST be cited or reviewer #2 finds them for us. The transformer standard applies: attention existed before "Attention Is All You Need" — the novelty that counted was the composition and the receipts. Same here.
 
